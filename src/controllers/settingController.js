@@ -1,54 +1,80 @@
-const Setting = require('../models/Setting');
+// src/controllers/settingController.js
+const { Setting } = require('../models');
 
 // @desc    Get all settings
 // @route   GET /api/settings
-// @access  Private
+// @access  Private/Admin
 exports.getSettings = async (req, res) => {
   try {
-    const { category } = req.query;
-    let query = {};
-    
-    if (category) {
-      query.category = category;
+    // Check if we should only return public settings
+    const whereConditions = {};
+    if (req.query.public === 'true') {
+      whereConditions.isPublic = true;
     }
     
-    const settings = await Setting.find(query).sort('category name');
+    // Filter by category if provided
+    if (req.query.category) {
+      whereConditions.category = req.query.category;
+    }
     
-    res.status(200).json({
+    const settings = await Setting.findAll({
+      where: whereConditions
+    });
+    
+    // Transform to a more friendly format
+    const formattedSettings = settings.reduce((acc, setting) => {
+      acc[setting.key] = {
+        value: setting.value,
+        category: setting.category,
+        description: setting.description,
+        isPublic: setting.isPublic
+      };
+      return acc;
+    }, {});
+    
+    res.json({
       success: true,
       count: settings.length,
-      data: settings
+      data: formattedSettings
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get settings error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Get single setting
-// @route   GET /api/settings/:id
-// @access  Private
+// @route   GET /api/settings/:key
+// @access  Private/Admin
 exports.getSetting = async (req, res) => {
   try {
-    const setting = await Setting.findById(req.params.id);
-
+    const setting = await Setting.findByPk(req.params.key);
+    
     if (!setting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Setting not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Setting not found' 
       });
     }
-
-    res.status(200).json({
+    
+    res.json({
       success: true,
-      data: setting
+      data: {
+        key: setting.key,
+        value: setting.value,
+        category: setting.category,
+        description: setting.description,
+        isPublic: setting.isPublic
+      }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get setting error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
@@ -58,123 +84,133 @@ exports.getSetting = async (req, res) => {
 // @access  Private/Admin
 exports.createSetting = async (req, res) => {
   try {
-    // Add user ID to updatedBy field
-    req.body.updatedBy = req.user.id;
+    const { key, value, category, description, isPublic } = req.body;
     
-    const setting = await Setting.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      data: setting
-    });
-  } catch (error) {
-    // Handle duplicate key error
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'A setting with this name already exists in this category'
+    // Check if setting already exists
+    const settingExists = await Setting.findByPk(key);
+    
+    if (settingExists) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Setting with that key already exists' 
       });
     }
     
-    res.status(500).json({
-      success: false,
-      message: error.message
+    // Create setting
+    const setting = await Setting.create({
+      key,
+      value,
+      category: category || 'general',
+      description,
+      isPublic: isPublic !== undefined ? isPublic : false
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Setting created successfully',
+      data: setting
+    });
+  } catch (error) {
+    console.error('Create setting error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Update setting
-// @route   PUT /api/settings/:id
+// @route   PUT /api/settings/:key
 // @access  Private/Admin
 exports.updateSetting = async (req, res) => {
   try {
-    // Add user ID to updatedBy field and update lastUpdated timestamp
-    req.body.updatedBy = req.user.id;
-    req.body.lastUpdated = Date.now();
+    const { value, category, description, isPublic } = req.body;
     
-    const setting = await Setting.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
-
+    // Find setting by key
+    const setting = await Setting.findByPk(req.params.key);
+    
     if (!setting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Setting not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Setting not found' 
       });
     }
-
-    res.status(200).json({
+    
+    // Update fields
+    if (value !== undefined) setting.value = value;
+    if (category !== undefined) setting.category = category;
+    if (description !== undefined) setting.description = description;
+    if (isPublic !== undefined) setting.isPublic = isPublic;
+    
+    // Save setting
+    await setting.save();
+    
+    res.json({
       success: true,
+      message: 'Setting updated successfully',
       data: setting
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Update setting error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Delete setting
-// @route   DELETE /api/settings/:id
+// @route   DELETE /api/settings/:key
 // @access  Private/Admin
 exports.deleteSetting = async (req, res) => {
   try {
-    const setting = await Setting.findById(req.params.id);
-
+    // Find setting by key
+    const setting = await Setting.findByPk(req.params.key);
+    
     if (!setting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Setting not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Setting not found' 
       });
     }
-
-    await setting.deleteOne();
-
-    res.status(200).json({
+    
+    // Delete setting
+    await setting.destroy();
+    
+    res.json({
       success: true,
-      data: {}
+      message: 'Setting deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Delete setting error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
-// @desc    Get settings by category and name
-// @route   GET /api/settings/byName
-// @access  Private
-exports.getSettingByName = async (req, res) => {
+// @desc    Get settings by category
+// @route   GET /api/settings/category/:category
+// @access  Private/Admin
+exports.getSettingsByCategory = async (req, res) => {
   try {
-    const { category, name } = req.query;
+    const settings = await Setting.findAll({
+      where: {
+        category: req.params.category
+      }
+    });
     
-    if (!category || !name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide category and name'
-      });
-    }
-    
-    const setting = await Setting.findOne({ category, name });
-    
-    if (!setting) {
-      return res.status(404).json({
-        success: false,
-        message: 'Setting not found'
-      });
-    }
-    
-    res.status(200).json({
+    res.json({
       success: true,
-      data: setting
+      count: settings.length,
+      data: settings
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get settings by category error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };

@@ -1,21 +1,26 @@
-const User = require('../models/User');
+// src/controllers/userController.js
+const { User } = require('../models');
+const bcrypt = require('bcryptjs');
 
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] }
+    });
     
-    res.status(200).json({
+    res.json({
       success: true,
       count: users.length,
       data: users
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get users error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
@@ -25,47 +30,71 @@ exports.getUsers = async (req, res) => {
 // @access  Private/Admin
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
-
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
-
-    res.status(200).json({
+    
+    res.json({
       success: true,
       data: user
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
-// @desc    Create user
+// @desc    Create new user
 // @route   POST /api/users
 // @access  Private/Admin
 exports.createUser = async (req, res) => {
   try {
-    const user = await User.create(req.body);
-
+    const { name, email, password, role } = req.body;
+    
+    // Check if user with that email already exists
+    const userExists = await User.findOne({ where: { email } });
+    
+    if (userExists) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User with that email already exists' 
+      });
+    }
+    
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password, // Will be hashed by model hook
+      role: role || 'admin'
+    });
+    
     res.status(201).json({
       success: true,
+      message: 'User created successfully',
       data: {
-        _id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        avatar: user.avatar
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Create user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
@@ -75,26 +104,47 @@ exports.createUser = async (req, res) => {
 // @access  Private/Admin
 exports.updateUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    }).select('-password');
-
+    const { name, email, role } = req.body;
+    
+    // Find user by ID
+    const user = await User.findByPk(req.params.id);
+    
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
-
-    res.status(200).json({
+    
+    // Update fields
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.role = role || user.role;
+    
+    // If password is included, update it
+    if (req.body.password) {
+      user.password = req.body.password;
+    }
+    
+    // Save user
+    await user.save();
+    
+    res.json({
       success: true,
-      data: user
+      message: 'User updated successfully',
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Update user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
@@ -104,25 +154,28 @@ exports.updateUser = async (req, res) => {
 // @access  Private/Admin
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-
+    // Find user by ID
+    const user = await User.findByPk(req.params.id);
+    
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
-
-    await user.remove();
-
-    res.status(200).json({
+    
+    // Delete user
+    await user.destroy();
+    
+    res.json({
       success: true,
-      data: {}
+      message: 'User deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Delete user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };

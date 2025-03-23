@@ -1,99 +1,85 @@
-const mongoose = require('mongoose');
+// src/models/Driver.js
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const DriverSchema = new mongoose.Schema({
+const Driver = sequelize.define('Driver', {
   name: {
-    type: String,
-    required: [true, 'Please add a name']
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
   phone: {
-    type: String,
-    required: [true, 'Please add a phone number'],
-    unique: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      notEmpty: true
+    }
   },
-  vehicleNumber: {
-    type: String,
-    required: [true, 'Please add a vehicle number'],
-    unique: true
+  email: {
+    type: DataTypes.STRING,
+    validate: {
+      isEmail: true
+    }
   },
   vehicleType: {
-    type: String,
-    enum: ['auto', 'car', 'bike'],
-    default: 'auto'
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isIn: [['auto', 'car', 'bike']]
+    }
   },
-  status: {
-    type: String,
-    enum: ['online', 'offline', 'busy', 'inactive'],
-    default: 'offline'
+  vehicleNumber: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  licenseNumber: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
   currentLocation: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point'
-    },
-    coordinates: {
-      type: [Number],
-      default: [0, 0]
-    }
+    type: DataTypes.JSON, // For storing latitude/longitude
+    defaultValue: null
+  },
+  isOnline: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    default: 5
-  },
-  earnings: {
-    daily: {
-      type: Number,
-      default: 0
-    },
-    weekly: {
-      type: Number,
-      default: 0
-    },
-    monthly: {
-      type: Number,
-      default: 0
-    },
-    total: {
-      type: Number,
-      default: 0
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 5
     }
   },
-  isVerified: {
-    type: Boolean,
-    default: false
+  totalRides: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  totalEarnings: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0
+  },
+  profileImage: {
+    type: DataTypes.STRING,
+    defaultValue: 'default-driver.png'
   },
   documents: {
-    license: {
-      url: String,
-      verified: {
-        type: Boolean,
-        default: false
-      }
-    },
-    registration: {
-      url: String,
-      verified: {
-        type: Boolean,
-        default: false
-      }
-    },
-    insurance: {
-      url: String,
-      verified: {
-        type: Boolean,
-        default: false
-      }
-    }
+    type: DataTypes.JSON, // For storing document paths and verification status
+    defaultValue: {}
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  notes: {
+    type: DataTypes.TEXT
   }
+}, {
+  timestamps: true
 });
 
-// Create geospatial index for location-based queries
-DriverSchema.index({ currentLocation: '2dsphere' });
-
-module.exports = mongoose.model('Driver', DriverSchema);
+module.exports = Driver;

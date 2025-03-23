@@ -1,39 +1,32 @@
-// Create src/models/Setting.js if it doesn't exist
-const mongoose = require('mongoose');
+// src/models/Setting.js
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const SettingSchema = new mongoose.Schema({
-  category: {
-    type: String,
-    enum: ['pricing', 'system', 'notification', 'chat'],
-    required: true
-  },
-  name: {
-    type: String,
-    required: true,
-    unique: true
+const Setting = sequelize.define('Setting', {
+  key: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    primaryKey: true
   },
   value: {
-    type: mongoose.Schema.Types.Mixed,
-    required: true
+    type: DataTypes.JSON,
+    allowNull: false
+  },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'general'
   },
   description: {
-    type: String
+    type: DataTypes.STRING
   },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  lastUpdated: {
-    type: Date,
-    default: Date.now
-  },
-  updatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+  isPublic: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
+}, {
+  timestamps: true
 });
 
-// Compound index for category and name
-SettingSchema.index({ category: 1, name: 1 }, { unique: true });
-
-module.exports = mongoose.model('Setting', SettingSchema);
+module.exports = Setting;

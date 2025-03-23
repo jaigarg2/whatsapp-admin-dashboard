@@ -1,147 +1,125 @@
-const mongoose = require('mongoose');
+// src/models/Ride.js
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const RideSchema = new mongoose.Schema({
-  customer: {
-    name: String,
-    phone: {
-      type: String,
-      required: [true, 'Please add a phone number']
-    },
-    whatsappId: String
+const Ride = sequelize.define('Ride', {
+  rideId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   },
-  driver: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Driver'
+  userId: {
+    type: DataTypes.STRING, // WhatsApp number or user identifier
+    allowNull: false
   },
-  pickup: {
-    address: {
-      type: String,
-      required: [true, 'Please add a pickup address']
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number],
-        default: [0, 0]
-      }
-    }
+  userName: {
+    type: DataTypes.STRING
   },
-  dropoff: {
-    address: {
-      type: String,
-      required: [true, 'Please add a dropoff address']
+  driverId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: 'Drivers',
+      key: 'id'
     },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number],
-        default: [0, 0]
-      }
-    }
+    allowNull: true // Null until assigned to a driver
   },
   status: {
-    type: String,
-    enum: ['pending', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled'],
-    default: 'pending'
-  },
-  rideType: {
-    type: String,
-    enum: ['auto', 'car', 'bike'],
-    default: 'auto'
-  },
-  fare: {
-    estimated: {
-      type: Number,
-      required: true
-    },
-    final: {
-      type: Number,
-      default: 0
-    },
-    currency: {
-      type: String,
-      default: 'INR'
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'pending',
+    validate: {
+      isIn: [['pending', 'accepted', 'arriving', 'in_progress', 'completed', 'cancelled']]
     }
   },
-  payment: {
-    method: {
-      type: String,
-      enum: ['cash', 'online', 'wallet'],
-      default: 'cash'
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'completed', 'failed'],
-      default: 'pending'
-    },
-    transactionId: String
+  pickupLocation: {
+    type: DataTypes.JSON, // Store full location data including lat/long
+    allowNull: false
   },
-  schedule: {
-    isScheduled: {
-      type: Boolean,
-      default: false
-    },
-    scheduledTime: Date
+  dropoffLocation: {
+    type: DataTypes.JSON,
+    allowNull: false
   },
-  timestamps: {
-    created: {
-      type: Date,
-      default: Date.now
-    },
-    accepted: Date,
-    arrived: Date,
-    started: Date,
-    completed: Date,
-    cancelled: Date
+  pickupAddress: {
+    type: DataTypes.STRING
+  },
+  dropoffAddress: {
+    type: DataTypes.STRING
+  },
+  requestTime: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  scheduledTime: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  startTime: {
+    type: DataTypes.DATE
+  },
+  endTime: {
+    type: DataTypes.DATE
+  },
+  estimatedFare: {
+    type: DataTypes.FLOAT
+  },
+  actualFare: {
+    type: DataTypes.FLOAT
+  },
+  paymentMethod: {
+    type: DataTypes.STRING,
+    defaultValue: 'cash'
+  },
+  paymentStatus: {
+    type: DataTypes.STRING,
+    defaultValue: 'pending',
+    validate: {
+      isIn: [['pending', 'completed', 'failed']]
+    }
+  },
+  vehicleType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isIn: [['auto', 'car', 'bike']]
+    }
   },
   distance: {
-    type: Number,
-    default: 0
+    type: DataTypes.FLOAT
   },
   duration: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER // in minutes
   },
   rating: {
-    driver: {
-      type: Number,
-      min: 1,
-      max: 5
-    },
-    customer: {
-      type: Number,
+    type: DataTypes.INTEGER,
+    validate: {
       min: 1,
       max: 5
     }
   },
   feedback: {
-    driver: String,
-    customer: String
+    type: DataTypes.TEXT
   },
-  cancellationReason: String,
-  chatHistory: [{
-    sender: {
-      type: String,
-      enum: ['system', 'customer', 'driver', 'admin']
-    },
-    message: String,
-    timestamp: {
-      type: Date,
-      default: Date.now
+  cancellationReason: {
+    type: DataTypes.STRING
+  },
+  cancellationTime: {
+    type: DataTypes.DATE
+  },
+  cancelledBy: {
+    type: DataTypes.STRING // 'user' or 'driver' or 'admin'
+  }
+}, {
+  timestamps: true,
+  hooks: {
+    beforeCreate: (ride) => {
+      // Generate a unique ride ID if not provided
+      if (!ride.rideId) {
+        const timestamp = new Date().getTime();
+        const random = Math.floor(Math.random() * 1000);
+        ride.rideId = `RIDE${timestamp}${random}`;
+      }
     }
-  }]
+  }
 });
 
-// Create geospatial indexes for location-based queries
-RideSchema.index({ 'pickup.location': '2dsphere' });
-RideSchema.index({ 'dropoff.location': '2dsphere' });
-
-module.exports = mongoose.model('Ride', RideSchema);
+module.exports = Ride;

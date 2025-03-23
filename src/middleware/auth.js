@@ -1,24 +1,24 @@
+// src/middleware/auth.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models');
 
 // Protect routes
 exports.protect = async (req, res, next) => {
   let token;
 
-  // Check if auth header exists and starts with 'Bearer'
+  // Check if auth header exists and has Bearer token
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    // Set token from Bearer token in header
+    // Extract token from Bearer string
     token = req.headers.authorization.split(' ')[1];
-  } 
-  // If no token in auth header, check for token in cookie
-  else if (req.cookies?.token) {
+  } else if (req.cookies && req.cookies.token) {
+    // Or check if token is in cookies
     token = req.cookies.token;
   }
 
-  // Make sure token exists
+  // If no token is found
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -30,11 +30,21 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from the token
-    req.user = await User.findById(decoded.id);
+    // Find user by ID from decoded token
+    const user = await User.findByPk(decoded.id);
 
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Add user to request object
+    req.user = user;
     next();
-  } catch (err) {
+  } catch (error) {
+    console.error('Auth middleware error:', error);
     return res.status(401).json({
       success: false,
       message: 'Not authorized to access this route'

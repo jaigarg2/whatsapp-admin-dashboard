@@ -1,202 +1,319 @@
-const Ride = require('../models/Ride');
-const Driver = require('../models/Driver');
+// src/controllers/dashboardController.js
+const { Ride, Driver, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
 // @desc    Get dashboard statistics
-// @route   GET /api/dashboard
-// @access  Private
+// @route   GET /api/dashboard/stats
+// @access  Private/Admin
 exports.getDashboardStats = async (req, res) => {
   try {
-    // Get today's date at midnight
+    // Get today's date
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
     
-    // Get start of current week (Sunday)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
+    // Get start of current week and month
+    const startOfThisWeek = new Date(today);
+    startOfThisWeek.setDate(today.getDate() - today.getDay());
+    startOfThisWeek.setHours(0, 0, 0, 0);
     
-    // Get start of current month
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     
-    // Get ride statistics
-    const totalRides = await Ride.countDocuments();
-    const completedRides = await Ride.countDocuments({ status: 'completed' });
-    const cancelledRides = await Ride.countDocuments({ status: 'cancelled' });
-    const todayRides = await Ride.countDocuments({
-      'timestamps.created': { $gte: today }
-    });
-    const weekRides = await Ride.countDocuments({
-      'timestamps.created': { $gte: startOfWeek }
-    });
-    const monthRides = await Ride.countDocuments({
-      'timestamps.created': { $gte: startOfMonth }
+    // Get counts for today
+    const todayRides = await Ride.count({
+      where: {
+        requestTime: {
+          [Op.between]: [startOfToday, endOfToday]
+        }
+      }
     });
     
-    // Get total earnings (sum of all completed rides' final fare)
-    const earnings = await Ride.aggregate([
-      { $match: { status: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$fare.final' } } }
-    ]);
+    const todayCompletedRides = await Ride.count({
+      where: {
+        status: 'completed',
+        endTime: {
+          [Op.between]: [startOfToday, endOfToday]
+        }
+      }
+    });
     
-    const totalEarnings = earnings.length > 0 ? earnings[0].total : 0;
+    const todayCancelledRides = await Ride.count({
+      where: {
+        status: 'cancelled',
+        cancellationTime: {
+          [Op.between]: [startOfToday, endOfToday]
+        }
+      }
+    });
     
-    // Get today's earnings
-    const todayEarnings = await Ride.aggregate([
-      { 
-        $match: { 
-          status: 'completed',
-          'timestamps.completed': { $gte: today }
-        } 
-      },
-      { $group: { _id: null, total: { $sum: '$fare.final' } } }
-    ]);
+    const todayRevenue = await Ride.sum('actualFare', {
+      where: {
+        status: 'completed',
+        endTime: {
+          [Op.between]: [startOfToday, endOfToday]
+        }
+      }
+    }) || 0;
     
-    // Get driver statistics
-    const totalDrivers = await Driver.countDocuments();
-    const activeDrivers = await Driver.countDocuments({ status: { $in: ['online', 'busy'] } });
+    // Get counts for this week
+    const thisWeekRides = await Ride.count({
+      where: {
+        requestTime: {
+          [Op.gte]: startOfThisWeek
+        }
+      }
+    });
+    
+    const thisWeekRevenue = await Ride.sum('actualFare', {
+      where: {
+        status: 'completed',
+        endTime: {
+          [Op.gte]: startOfThisWeek
+        }
+      }
+    }) || 0;
+    
+    // Get counts for this month
+    const thisMonthRides = await Ride.count({
+      where: {
+        requestTime: {
+          [Op.gte]: startOfThisMonth
+        }
+      }
+    });
+    
+    const thisMonthRevenue = await Ride.sum('actualFare', {
+      where: {
+        status: 'completed',
+        endTime: {
+          [Op.gte]: startOfThisMonth
+        }
+      }
+    }) || 0;
+    
+    // Get active drivers count
+    const activeDriversCount = await Driver.count({
+      where: {
+        isActive: true
+      }
+    });
+    
+    // Get online drivers count
+    const onlineDriversCount = await Driver.count({
+      where: {
+        isOnline: true
+      }
+    });
+    
+    // Get pending rides
+    const pendingRidesCount = await Ride.count({
+      where: {
+        status: 'pending'
+      }
+    });
     
     // Get latest rides
-    const latestRides = await Ride.find()
-      .sort({ 'timestamps.created': -1 })
-      .limit(5)
-      .populate('driver', 'name phone vehicleNumber');
+    const latestRides = await Ride.findAll({
+      include: [
+        {
+          model: Driver,
+          as: 'driver',
+          attributes: ['id', 'name', 'phone']
+        }
+      ],
+      order: [['requestTime', 'DESC']],
+      limit: 5
+    });
     
-    // Response data
+    // Prepare response
     const stats = {
-      rides: {
-        total: totalRides,
-        completed: completedRides,
-        cancelled: cancelledRides,
-        today: todayRides,
-        thisWeek: weekRides,
-        thisMonth: monthRides
+      today: {
+        rides: todayRides,
+        completedRides: todayCompletedRides,
+        cancelledRides: todayCancelledRides,
+        revenue: todayRevenue,
+        completionRate: todayRides > 0 ? (todayCompletedRides / todayRides * 100).toFixed(2) : 0
       },
-      earnings: {
-        total: totalEarnings,
-        today: todayEarnings.length > 0 ? todayEarnings[0].total : 0
+      thisWeek: {
+        rides: thisWeekRides,
+        revenue: thisWeekRevenue
+      },
+      thisMonth: {
+        rides: thisMonthRides,
+        revenue: thisMonthRevenue
       },
       drivers: {
-        total: totalDrivers,
-        active: activeDrivers
+        total: await Driver.count(),
+        active: activeDriversCount,
+        online: onlineDriversCount
+      },
+      rides: {
+        pending: pendingRidesCount,
+        inProgress: await Ride.count({
+          where: {
+            status: {
+              [Op.in]: ['accepted', 'arriving', 'in_progress']
+            }
+          }
+        }),
+        total: await Ride.count()
       },
       latestRides
     };
     
-    res.status(200).json({
+    res.json({
       success: true,
       data: stats
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
-// @desc    Get earnings by period
-// @route   GET /api/dashboard/earnings
-// @access  Private
-exports.getEarningsByPeriod = async (req, res) => {
+// @desc    Get revenue chart data
+// @route   GET /api/dashboard/revenue-chart
+// @access  Private/Admin
+exports.getRevenueChartData = async (req, res) => {
   try {
-    const { period = 'daily', startDate, endDate } = req.query;
+    // Default to last 7 days if no period specified
+    const period = req.query.period || 'week';
     
-    let start, end, groupFormat;
+    let startDate, interval, format;
+    const today = new Date();
     
-    // Set default end date to today
-    end = endDate ? new Date(endDate) : new Date();
-    end.setHours(23, 59, 59, 999);
+    // Set parameters based on period
+    switch (period) {
+      case 'week':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        interval = 'day';
+        format = '%Y-%m-%d';
+        break;
+      case 'month':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 30);
+        interval = 'day';
+        format = '%Y-%m-%d';
+        break;
+      case 'year':
+        startDate = new Date(today);
+        startDate.setFullYear(today.getFullYear() - 1);
+        interval = 'month';
+        format = '%Y-%m';
+        break;
+      default:
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        interval = 'day';
+        format = '%Y-%m-%d';
+    }
     
-    // Set grouping format and start date based on period
-    if (period === 'daily') {
-      // Default to last 7 days if no start date
-      start = startDate ? new Date(startDate) : new Date(end);
-      start.setDate(end.getDate() - 6);
-      start.setHours(0, 0, 0, 0);
-      groupFormat = { $dateToString: { format: '%Y-%m-%d', date: '$timestamps.completed' } };
-    } else if (period === 'weekly') {
-      // Default to last 8 weeks if no start date
-      start = startDate ? new Date(startDate) : new Date(end);
-      start.setDate(end.getDate() - (8 * 7));
-      start.setHours(0, 0, 0, 0);
-      
-      // Group by week number (week starts on Sunday)
-      groupFormat = { 
-        year: { $year: '$timestamps.completed' },
-        week: { $week: '$timestamps.completed' }
-      };
-    } else if (period === 'monthly') {
-      // Default to last 6 months if no start date
-      start = startDate ? new Date(startDate) : new Date(end);
-      start.setMonth(end.getMonth() - 5);
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      
-      // Group by year and month
-      groupFormat = { 
-        year: { $year: '$timestamps.completed' },
-        month: { $month: '$timestamps.completed' }
-      };
+    // Get revenue data grouped by interval
+    let revenueData;
+    
+    if (interval === 'day') {
+      revenueData = await Ride.findAll({
+        attributes: [
+          [sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format), 'date'],
+          [sequelize.fn('SUM', sequelize.col('actualFare')), 'revenue']
+        ],
+        where: {
+          status: 'completed',
+          endTime: {
+            [Op.between]: [startDate, today]
+          }
+        },
+        group: [sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format)],
+        order: [[sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format), 'ASC']],
+        raw: true
+      });
     } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid period, must be one of: daily, weekly, monthly'
+      revenueData = await Ride.findAll({
+        attributes: [
+          [sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format), 'date'],
+          [sequelize.fn('SUM', sequelize.col('actualFare')), 'revenue']
+        ],
+        where: {
+          status: 'completed',
+          endTime: {
+            [Op.between]: [startDate, today]
+          }
+        },
+        group: [sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format)],
+        order: [[sequelize.fn('DATE_FORMAT', sequelize.col('endTime'), format), 'ASC']],
+        raw: true
       });
     }
     
-    // Aggregate earnings by the specified period
-    const earnings = await Ride.aggregate([
-      { 
-        $match: { 
-          status: 'completed',
-          'timestamps.completed': { $gte: start, $lte: end }
-        } 
-      },
-      { 
-        $group: { 
-          _id: groupFormat,
-          earnings: { $sum: '$fare.final' },
-          count: { $sum: 1 }
-        } 
-      },
-      { $sort: { '_id': 1 } }
-    ]);
+    res.json({
+      success: true,
+      data: revenueData.map(item => ({
+        date: item.date,
+        revenue: parseFloat(item.revenue) || 0
+      }))
+    });
+  } catch (error) {
+    console.error('Get revenue chart data error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+};
+
+// @desc    Get ride distribution data
+// @route   GET /api/dashboard/ride-distribution
+// @access  Private/Admin
+exports.getRideDistribution = async (req, res) => {
+  try {
+    // Get distribution by vehicle type
+    const vehicleDistribution = await Ride.findAll({
+      attributes: [
+        'vehicleType',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['vehicleType'],
+      raw: true
+    });
     
-    // Format the response data
-    let formattedData;
+    // Get distribution by status
+    const statusDistribution = await Ride.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    });
     
-    if (period === 'daily') {
-      formattedData = earnings.map(item => ({
-        date: item._id,
-        earnings: item.earnings,
-        count: item.count
-      }));
-    } else if (period === 'weekly') {
-      formattedData = earnings.map(item => ({
-        week: `${item._id.year}-W${item._id.week}`,
-        earnings: item.earnings,
-        count: item.count
-      }));
-    } else if (period === 'monthly') {
-      formattedData = earnings.map(item => ({
-        month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
-        earnings: item.earnings,
-        count: item.count
-      }));
-    }
+    // Get distribution by time of day
+    const timeDistribution = await Ride.findAll({
+      attributes: [
+        [sequelize.fn('HOUR', sequelize.col('requestTime')), 'hour'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: [sequelize.fn('HOUR', sequelize.col('requestTime'))],
+      order: [[sequelize.fn('HOUR', sequelize.col('requestTime')), 'ASC']],
+      raw: true
+    });
     
-    res.status(200).json({
+    res.json({
       success: true,
       data: {
-        period,
-        startDate: start,
-        endDate: end,
-        earnings: formattedData
+        byVehicleType: vehicleDistribution,
+        byStatus: statusDistribution,
+        byTimeOfDay: timeDistribution
       }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get ride distribution error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };

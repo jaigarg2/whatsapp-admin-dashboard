@@ -1,339 +1,390 @@
-const Ride = require('../models/Ride');
-const Driver = require('../models/Driver');
+// src/controllers/rideController.js
+const { Ride, Driver } = require('../models');
+const { Op } = require('sequelize');
+const { sequelize } = require('../config/db');
 
 // @desc    Get all rides
 // @route   GET /api/rides
-// @access  Private
+// @access  Private/Admin
 exports.getRides = async (req, res) => {
   try {
-    // Allow filtering by status and date range
-    const { status, startDate, endDate, customerId, driverId } = req.query;
-    let query = {};
+    // Parse query parameters
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const startIndex = (page - 1) * limit;
     
-    if (status) {
-      query.status = status;
+    // Build filter conditions
+    const whereConditions = {};
+    
+    if (req.query.status) {
+      whereConditions.status = req.query.status;
     }
     
-    if (startDate && endDate) {
-      query['timestamps.created'] = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+    if (req.query.vehicleType) {
+      whereConditions.vehicleType = req.query.vehicleType;
+    }
+    
+    if (req.query.driverId) {
+      whereConditions.driverId = req.query.driverId;
+    }
+    
+    if (req.query.userId) {
+      whereConditions.userId = req.query.userId;
+    }
+    
+    // Date range filtering
+    if (req.query.startDate && req.query.endDate) {
+      whereConditions.requestTime = {
+        [Op.between]: [
+          new Date(req.query.startDate),
+          new Date(req.query.endDate)
+        ]
+      };
+    } else if (req.query.startDate) {
+      whereConditions.requestTime = {
+        [Op.gte]: new Date(req.query.startDate)
+      };
+    } else if (req.query.endDate) {
+      whereConditions.requestTime = {
+        [Op.lte]: new Date(req.query.endDate)
       };
     }
     
-    if (customerId) {
-      query['customer.phone'] = customerId;
+    // Get rides with pagination
+    const { count, rows: rides } = await Ride.findAndCountAll({
+      where: whereConditions,
+      include: [
+        {
+          model: Driver,
+          as: 'driver',
+          attributes: ['id', 'name', 'phone', 'vehicleNumber']
+        }
+      ],
+      limit,
+      offset: startIndex,
+      order: [['requestTime', 'DESC']]
+    });
+    
+    // Pagination result
+    const pagination = {};
+    
+    if (startIndex + limit < count) {
+      pagination.next = {
+        page: page + 1,
+        limit
+      };
     }
     
-    if (driverId) {
-      query.driver = driverId;
+    if (startIndex > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit
+      };
     }
     
-    const rides = await Ride.find(query)
-      .populate('driver', 'name phone vehicleNumber vehicleType')
-      .sort({ 'timestamps.created': -1 });
-    
-    res.status(200).json({
+    res.json({
       success: true,
-      count: rides.length,
+      count,
+      pagination,
       data: rides
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get rides error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Get single ride
 // @route   GET /api/rides/:id
-// @access  Private
+// @access  Private/Admin
 exports.getRide = async (req, res) => {
   try {
-    const ride = await Ride.findById(req.params.id)
-      .populate('driver', 'name phone vehicleNumber vehicleType');
-
+    const ride = await Ride.findByPk(req.params.id, {
+      include: [
+        {
+          model: Driver,
+          as: 'driver',
+          attributes: ['id', 'name', 'phone', 'vehicleNumber', 'vehicleType', 'rating']
+        }
+      ]
+    });
+    
     if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Ride not found' 
       });
     }
-
-    res.status(200).json({
+    
+    res.json({
       success: true,
       data: ride
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get ride error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Create new ride
 // @route   POST /api/rides
-// @access  Private
+// @access  Private/Admin
 exports.createRide = async (req, res) => {
   try {
-    const ride = await Ride.create(req.body);
-
+    const { 
+      userId, 
+      userName,
+      pickupLocation, 
+      dropoffLocation,
+      pickupAddress,
+      dropoffAddress,
+      vehicleType,
+      scheduledTime,
+      estimatedFare
+    } = req.body;
+    
+    // Create ride
+    const ride = await Ride.create({
+      userId,
+      userName,
+      pickupLocation,
+      dropoffLocation,
+      pickupAddress,
+      dropoffAddress,
+      vehicleType,
+      scheduledTime: scheduledTime || new Date(),
+      estimatedFare,
+      status: 'pending'
+    });
+    
     res.status(201).json({
       success: true,
+      message: 'Ride created successfully',
       data: ride
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Create ride error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Update ride
 // @route   PUT /api/rides/:id
-// @access  Private
+// @access  Private/Admin
 exports.updateRide = async (req, res) => {
   try {
-    const ride = await Ride.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    }).populate('driver', 'name phone vehicleNumber vehicleType');
-
+    // Find ride by ID
+    const ride = await Ride.findByPk(req.params.id);
+    
     if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Ride not found' 
       });
     }
-
-    res.status(200).json({
+    
+    // Update fields
+    // Only update fields that are provided in the request
+    const updatableFields = [
+      'status', 'driverId', 'startTime', 'endTime', 
+      'actualFare', 'paymentMethod', 'paymentStatus',
+      'rating', 'feedback', 'cancellationReason',
+      'cancellationTime', 'cancelledBy'
+    ];
+    
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        ride[field] = req.body[field];
+      }
+    });
+    
+    // Special case for status transitions
+    if (req.body.status === 'completed' && !ride.endTime) {
+      ride.endTime = new Date();
+    }
+    
+    if (req.body.status === 'cancelled' && !ride.cancellationTime) {
+      ride.cancellationTime = new Date();
+      ride.cancelledBy = req.body.cancelledBy || 'admin';
+    }
+    
+    // Save ride
+    await ride.save();
+    
+    // If the ride was completed, update driver statistics
+    if (req.body.status === 'completed' && ride.driverId) {
+      const driver = await Driver.findByPk(ride.driverId);
+      if (driver) {
+        driver.totalRides += 1;
+        driver.totalEarnings = (parseFloat(driver.totalEarnings) || 0) + (parseFloat(ride.actualFare) || 0);
+        await driver.save();
+      }
+    }
+    
+    res.json({
       success: true,
+      message: 'Ride updated successfully',
       data: ride
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Update ride error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Delete ride
 // @route   DELETE /api/rides/:id
-// @access  Private
+// @access  Private/Admin
 exports.deleteRide = async (req, res) => {
   try {
-    const ride = await Ride.findById(req.params.id);
-
-    if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
-      });
-    }
-
-    await ride.deleteOne();
-
-    res.status(200).json({
-      success: true,
-      data: {}
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Assign driver to ride
-// @route   PUT /api/rides/:id/assign
-// @access  Private
-exports.assignDriver = async (req, res) => {
-  try {
-    const { driverId } = req.body;
-
-    if (!driverId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide driver ID'
-      });
-    }
-
-    // Check if driver exists
-    const driver = await Driver.findById(driverId);
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
-      });
-    }
-
-    // Check if driver is available
-    if (driver.status !== 'online') {
-      return res.status(400).json({
-        success: false,
-        message: 'Driver is not available'
-      });
-    }
-
-    // Update ride with driver and status
-    const ride = await Ride.findByIdAndUpdate(
-      req.params.id,
-      {
-        driver: driverId,
-        status: 'accepted',
-        'timestamps.accepted': Date.now()
-      },
-      {
-        new: true,
-        runValidators: true
-      }
-    ).populate('driver', 'name phone vehicleNumber vehicleType');
-
-    if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
-      });
-    }
-
-    // Update driver status to busy
-    await Driver.findByIdAndUpdate(driverId, { status: 'busy' });
-
-    res.status(200).json({
-      success: true,
-      data: ride
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Update ride status
-// @route   PUT /api/rides/:id/status
-// @access  Private
-exports.updateRideStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide status'
-      });
-    }
-
-    // Check if status is valid
-    const validStatuses = ['pending', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status'
-      });
-    }
-
-    // Prepare update object
-    const updateObj = { status };
+    // Find ride by ID
+    const ride = await Ride.findByPk(req.params.id);
     
-    // Add timestamp based on status
-    if (status === 'arrived') {
-      updateObj['timestamps.arrived'] = Date.now();
-    } else if (status === 'in_progress') {
-      updateObj['timestamps.started'] = Date.now();
-    } else if (status === 'completed') {
-      updateObj['timestamps.completed'] = Date.now();
-    } else if (status === 'cancelled') {
-      updateObj['timestamps.cancelled'] = Date.now();
-    }
-
-    const ride = await Ride.findByIdAndUpdate(
-      req.params.id,
-      updateObj,
-      {
-        new: true,
-        runValidators: true
-      }
-    ).populate('driver', 'name phone vehicleNumber vehicleType');
-
     if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Ride not found' 
       });
     }
-
-    // If ride is completed or cancelled, update driver status to online
-    if (status === 'completed' || status === 'cancelled') {
-      if (ride.driver) {
-        await Driver.findByIdAndUpdate(ride.driver, { status: 'online' });
-      }
+    
+    // Check if ride is active
+    if (['accepted', 'arriving', 'in_progress'].includes(ride.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete an active ride'
+      });
     }
-
-    res.status(200).json({
+    
+    // Delete ride
+    await ride.destroy();
+    
+    res.json({
       success: true,
-      data: ride
+      message: 'Ride deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Delete ride error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
-// @desc    Add message to ride chat history
-// @route   POST /api/rides/:id/chat
-// @access  Private
-exports.addChatMessage = async (req, res) => {
+// @desc    Get ride statistics
+// @route   GET /api/rides/stats
+// @access  Private/Admin
+exports.getRideStats = async (req, res) => {
   try {
-    const { sender, message } = req.body;
-
-    if (!sender || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide sender and message'
-      });
-    }
-
-    const ride = await Ride.findByIdAndUpdate(
-      req.params.id,
-      {
-        $push: {
-          chatHistory: {
-            sender,
-            message,
-            timestamp: Date.now()
-          }
+    // Get date range
+    const startDate = req.query.startDate 
+      ? new Date(req.query.startDate) 
+      : new Date(new Date().setDate(new Date().getDate() - 30)); // Last 30 days by default
+      
+    const endDate = req.query.endDate 
+      ? new Date(req.query.endDate) 
+      : new Date();
+    
+    // Count total rides
+    const totalRides = await Ride.count({
+      where: {
+        requestTime: {
+          [Op.between]: [startDate, endDate]
+        }
+      }
+    });
+    
+    // Count by status
+    const statusCounts = await Ride.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      where: {
+        requestTime: {
+          [Op.between]: [startDate, endDate]
         }
       },
-      {
-        new: true,
-        runValidators: true
+      group: ['status'],
+      raw: true
+    });
+    
+    // Total revenue
+    const totalRevenue = await Ride.sum('actualFare', {
+      where: {
+        status: 'completed',
+        endTime: {
+          [Op.between]: [startDate, endDate]
+        }
       }
-    );
-
-    if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ride not found'
-      });
-    }
-
-    res.status(200).json({
+    }) || 0;
+    
+    // Count by vehicle type
+    const vehicleCounts = await Ride.findAll({
+      attributes: [
+        'vehicleType',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      where: {
+        requestTime: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      group: ['vehicleType'],
+      raw: true
+    });
+    
+    // Average rating
+    const avgRating = await Ride.findOne({
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('rating')), 'avgRating']
+      ],
+      where: { 
+        rating: { [Op.not]: null },
+        endTime: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      raw: true
+    });
+    
+    res.json({
       success: true,
-      data: ride.chatHistory
+      data: {
+        totalRides,
+        byStatus: statusCounts.reduce((acc, curr) => {
+          acc[curr.status] = parseInt(curr.count);
+          return acc;
+        }, {}),
+        totalRevenue,
+        byVehicleType: vehicleCounts.reduce((acc, curr) => {
+          acc[curr.vehicleType] = parseInt(curr.count);
+          return acc;
+        }, {}),
+        averageRating: avgRating?.avgRating || 0,
+        dateRange: {
+          start: startDate,
+          end: endDate
+        }
+      }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get ride stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };

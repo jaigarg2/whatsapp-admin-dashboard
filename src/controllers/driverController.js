@@ -1,272 +1,274 @@
-const Driver = require('../models/Driver');
+// src/controllers/driverController.js
+const { Driver, Ride } = require('../models');
+const { Op } = require('sequelize');
 
 // @desc    Get all drivers
 // @route   GET /api/drivers
-// @access  Private
+// @access  Private/Admin
 exports.getDrivers = async (req, res) => {
   try {
-    const drivers = await Driver.find();
+    const drivers = await Driver.findAll();
     
-    res.status(200).json({
+    res.json({
       success: true,
       count: drivers.length,
       data: drivers
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get drivers error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Get single driver
 // @route   GET /api/drivers/:id
-// @access  Private
+// @access  Private/Admin
 exports.getDriver = async (req, res) => {
   try {
-    const driver = await Driver.findById(req.params.id);
-
+    const driver = await Driver.findByPk(req.params.id, {
+      include: [
+        {
+          model: Ride,
+          as: 'rides',
+          limit: 10,
+          order: [['createdAt', 'DESC']]
+        }
+      ]
+    });
+    
     if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Driver not found' 
       });
     }
-
-    res.status(200).json({
+    
+    res.json({
       success: true,
       data: driver
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get driver error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Create new driver
 // @route   POST /api/drivers
-// @access  Private
+// @access  Private/Admin
 exports.createDriver = async (req, res) => {
   try {
-    const driver = await Driver.create(req.body);
-
+    const { 
+      name, 
+      phone, 
+      email, 
+      vehicleType, 
+      vehicleNumber, 
+      licenseNumber 
+    } = req.body;
+    
+    // Check if driver with that phone already exists
+    const driverExists = await Driver.findOne({ where: { phone } });
+    
+    if (driverExists) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Driver with that phone number already exists' 
+      });
+    }
+    
+    // Create driver
+    const driver = await Driver.create({
+      name,
+      phone,
+      email,
+      vehicleType,
+      vehicleNumber,
+      licenseNumber
+    });
+    
     res.status(201).json({
       success: true,
+      message: 'Driver created successfully',
       data: driver
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Create driver error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Update driver
 // @route   PUT /api/drivers/:id
-// @access  Private
+// @access  Private/Admin
 exports.updateDriver = async (req, res) => {
   try {
-    const driver = await Driver.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
-
+    // Find driver by ID
+    const driver = await Driver.findByPk(req.params.id);
+    
     if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Driver not found' 
       });
     }
-
-    res.status(200).json({
+    
+    // Update fields
+    // Only update fields that are provided in the request
+    const updatableFields = [
+      'name', 'phone', 'email', 'vehicleType', 'vehicleNumber',
+      'licenseNumber', 'isActive', 'currentLocation', 'isOnline',
+      'profileImage', 'documents', 'notes'
+    ];
+    
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        driver[field] = req.body[field];
+      }
+    });
+    
+    // Save driver
+    await driver.save();
+    
+    res.json({
       success: true,
+      message: 'Driver updated successfully',
       data: driver
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Update driver error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
 // @desc    Delete driver
 // @route   DELETE /api/drivers/:id
-// @access  Private
+// @access  Private/Admin
 exports.deleteDriver = async (req, res) => {
   try {
-    const driver = await Driver.findById(req.params.id);
-
+    // Find driver by ID
+    const driver = await Driver.findByPk(req.params.id);
+    
     if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Driver not found' 
       });
     }
-
-    await driver.deleteOne();
-
-    res.status(200).json({
-      success: true,
-      data: {}
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Get nearby drivers
-// @route   GET /api/drivers/nearby
-// @access  Private
-exports.getNearbyDrivers = async (req, res) => {
-  try {
-    const { lat, lng, distance = 5, vehicleType } = req.query;
-
-    // Check if coordinates are provided
-    if (!lat || !lng) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide latitude and longitude'
-      });
-    }
-
-    // Calculate radius using distance
-    // Earth Radius is approximately 6378 kilometers
-    const radius = distance / 6378;
-
-    // Build query
-    let query = {
-      status: 'online',
-      currentLocation: {
-        $geoWithin: {
-          $centerSphere: [[parseFloat(lng), parseFloat(lat)], radius]
+    
+    // Check if driver has any active rides
+    const activeRides = await Ride.count({
+      where: {
+        driverId: driver.id,
+        status: {
+          [Op.in]: ['accepted', 'arriving', 'in_progress']
         }
       }
-    };
-
-    // Add vehicle type filter if provided
-    if (vehicleType) {
-      query.vehicleType = vehicleType;
+    });
+    
+    if (activeRides > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete driver with active rides'
+      });
     }
-
-    const drivers = await Driver.find(query);
-
-    res.status(200).json({
+    
+    // Delete driver
+    await driver.destroy();
+    
+    res.json({
       success: true,
-      count: drivers.length,
-      data: drivers
+      message: 'Driver deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Delete driver error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };
 
-// @desc    Update driver location
-// @route   PUT /api/drivers/:id/location
-// @access  Private
-exports.updateDriverLocation = async (req, res) => {
+// @desc    Get driver statistics
+// @route   GET /api/drivers/:id/stats
+// @access  Private/Admin
+exports.getDriverStats = async (req, res) => {
   try {
-    const { lat, lng } = req.body;
-
-    // Check if coordinates are provided
-    if (!lat || !lng) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide latitude and longitude'
+    const driver = await Driver.findByPk(req.params.id);
+    
+    if (!driver) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Driver not found' 
       });
     }
-
-    const driver = await Driver.findByIdAndUpdate(
-      req.params.id,
-      {
-        currentLocation: {
-          type: 'Point',
-          coordinates: [parseFloat(lng), parseFloat(lat)]
-        }
+    
+    // Get ride statistics
+    const totalRides = await Ride.count({
+      where: { driverId: driver.id }
+    });
+    
+    const completedRides = await Ride.count({
+      where: { 
+        driverId: driver.id,
+        status: 'completed'
+      }
+    });
+    
+    const cancelledRides = await Ride.count({
+      where: { 
+        driverId: driver.id,
+        status: 'cancelled'
+      }
+    });
+    
+    const totalEarnings = await Ride.sum('actualFare', {
+      where: { 
+        driverId: driver.id,
+        status: 'completed'
+      }
+    }) || 0;
+    
+    // Get average rating
+    const avgRating = await Ride.findOne({
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('rating')), 'avgRating']
+      ],
+      where: { 
+        driverId: driver.id,
+        rating: { [Op.not]: null }
       },
-      {
-        new: true,
-        runValidators: true
-      }
-    );
-
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
-      });
-    }
-
-    res.status(200).json({
+      raw: true
+    });
+    
+    res.json({
       success: true,
-      data: driver
+      data: {
+        totalRides,
+        completedRides,
+        cancelledRides,
+        completionRate: totalRides > 0 ? (completedRides / totalRides) * 100 : 0,
+        totalEarnings,
+        averageRating: avgRating?.avgRating || 0
+      }
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// @desc    Update driver status
-// @route   PUT /api/drivers/:id/status
-// @access  Private
-exports.updateDriverStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    // Check if status is provided
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide status'
-      });
-    }
-
-    // Check if status is valid
-    const validStatuses = ['online', 'offline', 'busy', 'inactive'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status, must be one of: online, offline, busy, inactive'
-      });
-    }
-
-    const driver = await Driver.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      {
-        new: true,
-        runValidators: true
-      }
-    );
-
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: 'Driver not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: driver
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
+    console.error('Get driver stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
     });
   }
 };

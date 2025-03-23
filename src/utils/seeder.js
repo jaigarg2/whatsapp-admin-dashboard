@@ -1,136 +1,94 @@
-const mongoose = require('mongoose');
+// src/utils/seeder.js
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const Setting = require('../models/Setting');
-require('dotenv').config();
+const { User, Setting } = require('../models');
+const { sequelize } = require('../config/db');
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-// Seed data
 const seedDatabase = async () => {
   try {
-    console.log('Seeding database...');
-
-    // Check if admin user exists
-    const adminExists = await User.findOne({ email: 'admin@moevit.com' });
-
+    console.log('Running database seeder...');
+    
+    // Check if an admin user already exists
+    const adminExists = await User.findOne({ where: { email: 'admin@moevit.com' } });
+    
     if (!adminExists) {
-      // Create admin user
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
-
+      console.log('Creating default admin user...');
+      
+      // Create default admin user
       await User.create({
         name: 'Admin User',
         email: 'admin@moevit.com',
-        password: hashedPassword,
+        password: 'admin123', // Will be hashed by the model hook
         role: 'admin'
       });
-
-      console.log('Admin user created');
-    } else {
-      console.log('Admin user already exists');
+      
+      console.log('Default admin user created.');
     }
-
-    // Seed default settings
-    const pricingSettings = [
+    
+    // Default settings
+    const defaultSettings = [
       {
+        key: 'pricing_base',
+        value: { auto: 25, car: 50, bike: 15 },
         category: 'pricing',
-        name: 'base_fare_auto',
-        value: 30,
-        description: 'Base fare for auto rides in INR',
-        isActive: true
+        description: 'Base fare for different vehicle types',
+        isPublic: true
       },
       {
+        key: 'pricing_per_km',
+        value: { auto: 12, car: 20, bike: 8 },
         category: 'pricing',
-        name: 'base_fare_car',
-        value: 50,
-        description: 'Base fare for car rides in INR',
-        isActive: true
+        description: 'Per kilometer pricing for different vehicle types',
+        isPublic: true
       },
       {
+        key: 'pricing_per_minute',
+        value: { auto: 2, car: 3, bike: 1 },
         category: 'pricing',
-        name: 'base_fare_bike',
-        value: 20,
-        description: 'Base fare for bike rides in INR',
-        isActive: true
+        description: 'Per minute waiting pricing for different vehicle types',
+        isPublic: true
       },
       {
-        category: 'pricing',
-        name: 'per_km_rate_auto',
-        value: 15,
-        description: 'Per kilometer rate for auto rides in INR',
-        isActive: true
+        key: 'whatsapp_settings',
+        value: { 
+          welcome_message: 'Welcome to Moevit! How can we help you today?',
+          timeout_minutes: 30
+        },
+        category: 'bot',
+        description: 'WhatsApp bot settings',
+        isPublic: false
       },
       {
-        category: 'pricing',
-        name: 'per_km_rate_car',
-        value: 20,
-        description: 'Per kilometer rate for car rides in INR',
-        isActive: true
-      },
-      {
-        category: 'pricing',
-        name: 'per_km_rate_bike',
-        value: 10,
-        description: 'Per kilometer rate for bike rides in INR',
-        isActive: true
+        key: 'service_areas',
+        value: ['Mumbai', 'Thane', 'Navi Mumbai'],
+        category: 'service',
+        description: 'Areas where service is available',
+        isPublic: true
       }
     ];
-
-    // Insert pricing settings if they don't exist
-    for (const setting of pricingSettings) {
-      const exists = await Setting.findOne({ category: setting.category, name: setting.name });
-      if (!exists) {
-        await Setting.create(setting);
-        console.log(`Created setting: ${setting.category}.${setting.name}`);
-      }
+    
+    // Upsert all default settings
+    for (const setting of defaultSettings) {
+      await Setting.upsert(setting);
     }
-
-    // Create some system settings
-    const systemSettings = [
-      {
-        category: 'system',
-        name: 'driver_search_radius',
-        value: 5,
-        description: 'Radius in kilometers to search for available drivers',
-        isActive: true
-      },
-      {
-        category: 'system',
-        name: 'driver_assignment_timeout',
-        value: 30,
-        description: 'Time in seconds before driver assignment times out',
-        isActive: true
-      },
-      {
-        category: 'system',
-        name: 'ride_cancellation_fee',
-        value: 25,
-        description: 'Fee charged for ride cancellation after driver assignment in INR',
-        isActive: true
-      }
-    ];
-
-    // Insert system settings if they don't exist
-    for (const setting of systemSettings) {
-      const exists = await Setting.findOne({ category: setting.category, name: setting.name });
-      if (!exists) {
-        await Setting.create(setting);
-        console.log(`Created setting: ${setting.category}.${setting.name}`);
-      }
-    }
-
-    console.log('Database seeding completed');
-    process.exit();
+    
+    console.log('Default settings created/updated.');
+    console.log('Database seeding completed successfully.');
   } catch (error) {
     console.error('Error seeding database:', error);
     process.exit(1);
   }
 };
 
-// Run seeder
-seedDatabase();
+// If this file is run directly (node seeder.js)
+if (require.main === module) {
+  // Connect to database then run seeder
+  sequelize.authenticate()
+    .then(() => seedDatabase())
+    .then(() => process.exit())
+    .catch(err => {
+      console.error('Seeding error:', err);
+      process.exit(1);
+    });
+}
+
+module.exports = seedDatabase;
