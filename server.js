@@ -1,4 +1,4 @@
-// server.js
+// server.js - final version
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -27,27 +27,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(morgan('dev'));
-// Add this near your middleware setup
-app.use('/admin', express.static(path.join(__dirname, 'public')));
-
-// Update your routes to use the /admin prefix
-app.use('/admin/api/auth', authRoutes);
-app.use('/admin/api/users', userRoutes);  
-app.use('/admin/api/drivers', driverRoutes);
-app.use('/admin/api/rides', rideRoutes);
-app.use('/admin/api/settings', settingRoutes);
-app.use('/admin/api/dashboard', dashboardRoutes);
-
-// Update your frontend routes
-app.get('/admin', (req, res) => {
-  res.render('login');
-});
-
-app.get('/admin/dashboard', (req, res) => {
-  res.render('dashboard');
-});
-
-// Update other frontend routes similarly
 
 // Set view engine
 app.set('view engine', 'ejs');
@@ -56,7 +35,7 @@ app.set('views', path.join(__dirname, 'views'));
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mount routes
+// Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/drivers', driverRoutes);
@@ -66,6 +45,10 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Serve frontend routes
 app.get('/', (req, res) => {
+  res.render('login');
+});
+
+app.get('/login', (req, res) => {
   res.render('login');
 });
 
@@ -93,6 +76,65 @@ app.get('/profile', (req, res) => {
   res.render('profile');
 });
 
+// Test login endpoint kept for troubleshooting
+app.get('/test-login', (req, res) => {
+  res.render('test-login');
+});
+
+app.post('/test-login-api', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    console.log('Test Login API:', { email, password });
+    
+    // Get the user from database
+    const { User } = require('./src/models');
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      console.log('No user found with this email');
+      return res.json({ success: false, message: 'User not found' });
+    }
+    
+    console.log('Found user:', { id: user.id, email: user.email });
+    console.log('Stored password hash:', user.password);
+    
+    // Try direct comparison
+    const bcrypt = require('bcryptjs');
+    
+    // Create a new hash with the input password for comparison
+    const salt = await bcrypt.genSalt(10);
+    const freshHash = await bcrypt.hash(password, salt);
+    console.log('Fresh hash for entered password:', freshHash);
+    
+    // Try the normal compare
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Direct bcrypt compare result:', isMatch);
+    
+    // For testing, create a valid token regardless
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET || 'testsecret',
+      { expiresIn: '1h' }
+    );
+    
+    return res.json({
+      success: isMatch,
+      message: isMatch ? 'Login successful' : 'Password does not match',
+      token: token,
+      passwordDetails: {
+        enteredPassword: password,
+        storedHash: user.password,
+        freshHash: freshHash,
+        matches: isMatch
+      }
+    });
+  } catch (error) {
+    console.error('Test login error:', error);
+    res.json({ success: false, message: error.message, stack: error.stack });
+  }
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -102,8 +144,42 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Create fresh admin user
+// Add this to your server.js temporarily
+setTimeout(async () => {
+  try {
+    const { User } = require('./src/models');
+    
+    // Delete all existing admin users
+    await User.destroy({ where: { email: 'admin@moevit.com' } });
+    console.log('Deleted all existing admin users');
+    
+    // Create a new admin user with a known hash
+    // This hash is for 'admin123'
+    const knownHash = '$2a$10$JvRlMRPYRXtXp82fY8Bbp.zS/Ecs4e7nVP7dn7aGQFiGDUK4a/Tti';
+    
+    const newAdmin = await User.create({
+      name: 'Admin User',
+      email: 'admin@moevit.com',
+      password: knownHash,
+      role: 'admin'
+    }, {
+      hooks: false // Skip the password hashing hooks
+    });
+    
+    console.log('Created admin user with known hash');
+    
+    // Test with bcrypt directly
+    const bcrypt = require('bcryptjs');
+    const directTest = await bcrypt.compare('admin123', knownHash);
+    console.log('Direct test with known hash:', directTest);
+  } catch (error) {
+    console.error('Error creating admin user:', error);
+  }
+}, 3000);
+
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

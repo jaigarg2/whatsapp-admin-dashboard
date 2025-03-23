@@ -1,7 +1,6 @@
 // src/utils/seeder.js
 const bcrypt = require('bcryptjs');
 const { User, Setting } = require('../models');
-const { sequelize } = require('../config/db');
 
 const seedDatabase = async () => {
   try {
@@ -13,15 +12,20 @@ const seedDatabase = async () => {
     if (!adminExists) {
       console.log('Creating default admin user...');
       
-      // Create default admin user
+      // Create default admin user with pre-hashed password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('admin123', salt);
+      
       await User.create({
         name: 'Admin User',
         email: 'admin@moevit.com',
-        password: 'admin123', // Will be hashed by the model hook
+        password: hashedPassword,
         role: 'admin'
       });
       
       console.log('Default admin user created.');
+    } else {
+      console.log('Admin user already exists.');
     }
     
     // Default settings
@@ -68,27 +72,22 @@ const seedDatabase = async () => {
     
     // Upsert all default settings
     for (const setting of defaultSettings) {
-      await Setting.upsert(setting);
+      const [settingRecord, created] = await Setting.findOrCreate({
+        where: { key: setting.key },
+        defaults: setting
+      });
+      
+      if (!created) {
+        await settingRecord.update(setting);
+      }
     }
     
     console.log('Default settings created/updated.');
     console.log('Database seeding completed successfully.');
   } catch (error) {
     console.error('Error seeding database:', error);
-    process.exit(1);
   }
 };
 
-// If this file is run directly (node seeder.js)
-if (require.main === module) {
-  // Connect to database then run seeder
-  sequelize.authenticate()
-    .then(() => seedDatabase())
-    .then(() => process.exit())
-    .catch(err => {
-      console.error('Seeding error:', err);
-      process.exit(1);
-    });
-}
-
+// Export for use elsewhere
 module.exports = seedDatabase;

@@ -1,31 +1,20 @@
+// src/routes/settingRoutes.js
 const express = require('express');
-const {
-  getSettings,
-  getSetting,
-  createSetting,
-  updateSetting,
-  deleteSetting,
-  getSettingByName
-} = require('../controllers/settingController');
+const router = express.Router();
+const settingController = require('../controllers/settingController');
 const { protect, authorize } = require('../middleware/auth');
 
-const router = express.Router();
+// Routes for /api/settings
+router.route('/')
+  .get(protect, settingController.getSettings)
+  .post(protect, authorize('admin'), settingController.createSetting);
 
-// Apply protect middleware to all routes
-router.use(protect);
+router.route('/:key')
+  .get(protect, settingController.getSetting)
+  .put(protect, authorize('admin'), settingController.updateSetting)
+  .delete(protect, authorize('admin'), settingController.deleteSetting);
 
-// Special route to get setting by category and name
-router.route('/byName').get(getSettingByName);
-
-router
-  .route('/')
-  .get(getSettings)
-  .post(authorize('admin'), createSetting);
-
-router
-  .route('/:id')
-  .get(getSetting)
-  .put(authorize('admin'), updateSetting)
-  .delete(authorize('admin'), deleteSetting);
+// Comment out problematic route
+// router.get('/category/:category', protect, settingController.getSettingsByCategory);
 
 module.exports = router;

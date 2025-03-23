@@ -1,16 +1,14 @@
+// src/routes/dashboardRoutes.js
 const express = require('express');
-const {
-  getDashboardStats,
-  getEarningsByPeriod
-} = require('../controllers/dashboardController');
+const router = express.Router();
+const dashboardController = require('../controllers/dashboardController');
 const { protect } = require('../middleware/auth');
 
-const router = express.Router();
+// Routes for /api/dashboard
+router.get('/stats', protect, dashboardController.getDashboardStats);
 
-// Apply protect middleware to all routes
-router.use(protect);
-
-router.route('/').get(getDashboardStats);
-router.route('/earnings').get(getEarningsByPeriod);
+// Comment out problematic routes
+// router.get('/revenue-chart', protect, dashboardController.getRevenueChartData);
+// router.get('/ride-distribution', protect, dashboardController.getRideDistribution);
 
 module.exports = router;

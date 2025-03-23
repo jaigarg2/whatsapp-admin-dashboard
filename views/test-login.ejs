@@ -1,0 +1,57 @@
+<!-- views/test-login.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Login</title>
+  <style>
+    body { font-family: Arial; padding: 50px; }
+    .container { max-width: 400px; margin: 0 auto; }
+    input { display: block; width: 100%; padding: 10px; margin-bottom: 15px; }
+    button { padding: 10px; width: 100%; background: blue; color: white; border: none; }
+    #result { margin-top: 20px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Test Login</h1>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" value="admin@moevit.com">
+      <input type="password" id="password" placeholder="Password" value="admin123">
+      <button type="submit">Login</button>
+    </form>
+    <div id="result"></div>
+    
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const resultDiv = document.getElementById('result');
+        
+        resultDiv.innerHTML = 'Attempting login...';
+        
+        try {
+          const response = await fetch('/test-login-api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const data = await response.json();
+          resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          if (data.success) {
+            resultDiv.style.backgroundColor = '#dfd';
+          } else {
+            resultDiv.style.backgroundColor = '#fdd';
+          }
+        } catch (error) {
+          resultDiv.style.backgroundColor = '#fdd';
+          resultDiv.innerHTML = `Error: ${error.message}`;
+        }
+      });
+    </script>
+  </div>
+</body>
+</html>

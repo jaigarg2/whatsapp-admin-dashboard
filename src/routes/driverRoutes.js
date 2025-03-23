@@ -1,35 +1,20 @@
+// src/routes/driverRoutes.js
 const express = require('express');
-const {
-  getDrivers,
-  getDriver,
-  createDriver,
-  updateDriver,
-  deleteDriver,
-  getNearbyDrivers,
-  updateDriverLocation,
-  updateDriverStatus
-} = require('../controllers/driverController');
-const { protect } = require('../middleware/auth');
-
 const router = express.Router();
+const driverController = require('../controllers/driverController');
+const { protect, authorize } = require('../middleware/auth');
 
-// Apply protect middleware to all routes
-router.use(protect);
+// Routes for /api/drivers
+router.route('/')
+  .get(protect, driverController.getDrivers)
+  .post(protect, authorize('admin'), driverController.createDriver);
 
-router.route('/nearby').get(getNearbyDrivers);
+router.route('/:id')
+  .get(protect, driverController.getDriver)
+  .put(protect, authorize('admin'), driverController.updateDriver)
+  .delete(protect, authorize('admin'), driverController.deleteDriver);
 
-router
-  .route('/')
-  .get(getDrivers)
-  .post(createDriver);
-
-router
-  .route('/:id')
-  .get(getDriver)
-  .put(updateDriver)
-  .delete(deleteDriver);
-
-router.route('/:id/location').put(updateDriverLocation);
-router.route('/:id/status').put(updateDriverStatus);
+// Comment out the problematic route until the controller function is implemented
+// router.get('/:id/stats', protect, driverController.getDriverStats);
 
 module.exports = router;

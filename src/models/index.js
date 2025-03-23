@@ -3,6 +3,7 @@ const User = require('./User');
 const Driver = require('./Driver');
 const Ride = require('./Ride');
 const Setting = require('./Setting');
+const { sequelize } = require('../config/db');
 
 // Define relationships
 Ride.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
@@ -13,5 +14,6 @@ module.exports = {
   User,
   Driver,
   Ride,
-  Setting
+  Setting,
+  sequelize
 };

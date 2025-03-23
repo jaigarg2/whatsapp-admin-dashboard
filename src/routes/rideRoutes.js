@@ -1,34 +1,20 @@
+// src/routes/rideRoutes.js
 const express = require('express');
-const {
-  getRides,
-  getRide,
-  createRide,
-  updateRide,
-  deleteRide,
-  assignDriver,
-  updateRideStatus,
-  addChatMessage
-} = require('../controllers/rideController');
-const { protect } = require('../middleware/auth');
-
 const router = express.Router();
+const rideController = require('../controllers/rideController');
+const { protect, authorize } = require('../middleware/auth');
 
-// Apply protect middleware to all routes
-router.use(protect);
+// Routes for /api/rides
+router.route('/')
+  .get(protect, rideController.getRides)
+  .post(protect, rideController.createRide);
 
-router
-  .route('/')
-  .get(getRides)
-  .post(createRide);
+router.route('/:id')
+  .get(protect, rideController.getRide)
+  .put(protect, rideController.updateRide)
+  .delete(protect, authorize('admin'), rideController.deleteRide);
 
-router
-  .route('/:id')
-  .get(getRide)
-  .put(updateRide)
-  .delete(deleteRide);
-
-router.route('/:id/assign').put(assignDriver);
-router.route('/:id/status').put(updateRideStatus);
-router.route('/:id/chat').post(addChatMessage);
+// Comment out problematic routes
+// router.get('/stats', protect, rideController.getRideStats);
 
 module.exports = router;

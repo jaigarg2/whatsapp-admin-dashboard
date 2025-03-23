@@ -2,6 +2,84 @@
 const { Driver, Ride } = require('../models');
 const { Op } = require('sequelize');
 
+
+
+
+
+// Add this to your driverController.js file
+
+// @desc    Get driver statistics
+// @route   GET /api/drivers/:id/stats
+// @access  Private/Admin
+exports.getDriverStats = async (req, res) => {
+  try {
+    const driver = await Driver.findByPk(req.params.id);
+    
+    if (!driver) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Driver not found' 
+      });
+    }
+    
+    // Get ride statistics
+    const totalRides = await Ride.count({
+      where: { driverId: driver.id }
+    });
+    
+    const completedRides = await Ride.count({
+      where: { 
+        driverId: driver.id,
+        status: 'completed'
+      }
+    });
+    
+    const cancelledRides = await Ride.count({
+      where: { 
+        driverId: driver.id,
+        status: 'cancelled'
+      }
+    });
+    
+    const totalEarnings = await Ride.sum('actualFare', {
+      where: { 
+        driverId: driver.id,
+        status: 'completed'
+      }
+    }) || 0;
+    
+    // Get average rating
+    const avgRating = await Ride.findOne({
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('rating')), 'avgRating']
+      ],
+      where: { 
+        driverId: driver.id,
+        rating: { [Op.not]: null }
+      },
+      raw: true
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        totalRides,
+        completedRides,
+        cancelledRides,
+        completionRate: totalRides > 0 ? (completedRides / totalRides) * 100 : 0,
+        totalEarnings,
+        averageRating: avgRating?.avgRating || 0
+      }
+    });
+  } catch (error) {
+    console.error('Get driver stats error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+};
+
 // @desc    Get all drivers
 // @route   GET /api/drivers
 // @access  Private/Admin
