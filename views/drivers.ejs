@@ -1,0 +1,1064 @@
+<!-- Search and Filter Row -->
+<div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Search & Filter</h5>
+          <form id="driver-filter-form" class="row g-3">
+            <div class="col-md-3">
+              <label for="filter-status" class="form-label">Status</label>
+              <select class="form-select" id="filter-status">
+                <option value="">All Statuses</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+                <option value="busy">Busy</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filter-vehicle-type" class="form-label">Vehicle Type</label>
+              <select class="form-select" id="filter-vehicle-type">
+                <option value="">All Types</option>
+                <option value="auto">Auto</option>
+                <option value="car">Car</option>
+                <option value="bike">Bike</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filter-verification" class="form-label">Verification</label>
+              <select class="form-select" id="filter-verification">
+                <option value="">All</option>
+                <option value="verified">Verified</option>
+                <option value="unverified">Unverified</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filter-phone" class="form-label">Phone Number</label>
+              <input type="text" class="form-control" id="filter-phone" placeholder="Search by phone">
+            </div>
+            <div class="col-12 mt-3">
+              <button type="submit" class="btn btn-primary me-2">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button type="button" id="reset-filter" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Drivers Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">All Drivers</h6>
+          <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createDriverModal">
+            <i class="fas fa-plus"></i> Add Driver
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="alert-container"></div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-dashboard" id="drivers-table" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th>Rating</th>
+                  <th>Verified</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Table rows will be added here via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+              <span id="showing-entries">Showing 0 entries</span>
+            </div>
+            <div class="pagination-container">
+              <ul class="pagination" id="drivers-pagination">
+                <!-- Pagination links will be added here via JavaScript -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create Driver Modal -->
+  <div class="modal fade" id="createDriverModal" tabindex="-1" aria-labelledby="createDriverModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createDriverModalLabel">Add New Driver</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="create-driver-form">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="driver-name" class="form-label">Full Name *</label>
+                <input type="text" class="form-control" id="driver-name" name="driver-name" required>
+              </div>
+              <div class="col-md-6">
+                <label for="driver-phone" class="form-label">Phone Number *</label>
+                <input type="text" class="form-control" id="driver-phone" name="driver-phone" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="vehicle-number" class="form-label">Vehicle Number *</label>
+                <input type="text" class="form-control" id="vehicle-number" name="vehicle-number" required>
+              </div>
+              <div class="col-md-6">
+                <label for="vehicle-type" class="form-label">Vehicle Type</label>
+                <select class="form-select" id="vehicle-type" name="vehicle-type">
+                  <option value="auto">Auto</option>
+                  <option value="car">Car</option>
+                  <option value="bike">Bike</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="driver-lat" class="form-label">Current Latitude</label>
+                <input type="number" step="any" class="form-control" id="driver-lat" name="driver-lat">
+              </div>
+              <div class="col-md-6">
+                <label for="driver-lng" class="form-label">Current Longitude</label>
+                <input type="number" step="any" class="form-control" id="driver-lng" name="driver-lng">
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Verification Status</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="is-verified" name="is-verified">
+                  <label class="form-check-label" for="is-verified">
+                    Driver is verified
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="driver-status" class="form-label">Status</label>
+                <select class="form-select" id="driver-status" name="driver-status">
+                  <option value="offline">Offline</option>
+                  <option value="online">Online</option>
+                  <option value="busy">Busy</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-12">
+                <label class="form-label">Documents</label>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="license-verified" name="license-verified">
+                      <label class="form-check-label" for="license-verified">
+                        License Verified
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="registration-verified" name="registration-verified">
+                      <label class="form-check-label" for="registration-verified">
+                        Registration Verified
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="insurance-verified" name="insurance-verified">
+                      <label class="form-check-label" for="insurance-verified">
+                        Insurance Verified
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-driver-btn">Add Driver</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- View Driver Modal -->
+  <div class="modal fade" id="viewDriverModal" tabindex="-1" aria-labelledby="viewDriverModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewDriverModalLabel">Driver Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-container"></div>
+          <ul class="nav nav-tabs" id="driverTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details-tab-pane" type="button" role="tab" aria-controls="details-tab-pane" aria-selected="true">Details</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="earnings-tab" data-bs-toggle="tab" data-bs-target="#earnings-tab-pane" type="button" role="tab" aria-controls="earnings-tab-pane" aria-selected="false">Earnings</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents-tab-pane" type="button" role="tab" aria-controls="documents-tab-pane" aria-selected="false">Documents</button>
+            </li>
+          </ul>
+          <div class="tab-content p-3" id="driverTabsContent">
+            <div class="tab-pane fade show active" id="details-tab-pane" role="tabpanel" aria-labelledby="details-tab" tabindex="0">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Driver Information</h6>
+                  <table class="table">
+                    <tr>
+                      <th>ID</th>
+                      <td id="view-driver-id"></td>
+                    </tr>
+                    <tr>
+                      <th>Name</th>
+                      <td id="view-driver-name"></td>
+                    </tr>
+                    <tr>
+                      <th>Phone</th>
+                      <td id="view-driver-phone"></td>
+                    </tr>
+                    <tr>
+                      <th>Vehicle Number</th>
+                      <td id="view-vehicle-number"></td>
+                    </tr>
+                    <tr>
+                      <th>Vehicle Type</th>
+                      <td id="view-vehicle-type"></td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <h6>Status Information</h6>
+                  <table class="table">
+                    <tr>
+                      <th>Current Status</th>
+                      <td id="view-driver-status"></td>
+                    </tr>
+                    <tr>
+                      <th>Rating</th>
+                      <td id="view-driver-rating"></td>
+                    </tr>
+                    <tr>
+                      <th>Verification</th>
+                      <td id="view-driver-verification"></td>
+                    </tr>
+                    <tr>
+                      <th>Registered On</th>
+                      <td id="view-driver-created"></td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="row mt-3">
+                <div class="col-12">
+                  <h6>Actions</h6>
+                  <div class="btn-group" role="group" id="driver-action-btns">
+                    <button type="button" class="btn btn-outline-primary me-2" id="edit-driver-btn">
+                      <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-outline-success me-2" id="activate-driver-btn" style="display: none;">
+                      <i class="fas fa-check"></i> Activate
+                    </button>
+                    <button type="button" class="btn btn-outline-warning me-2" id="deactivate-driver-btn" style="display: none;">
+                      <i class="fas fa-ban"></i> Deactivate
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" id="delete-driver-btn">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="earnings-tab-pane" role="tabpanel" aria-labelledby="earnings-tab" tabindex="0">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title">Earnings Summary</h6>
+                      <table class="table">
+                        <tr>
+                          <th>Daily</th>
+                          <td id="view-earnings-daily"></td>
+                        </tr>
+                        <tr>
+                          <th>Weekly</th>
+                          <td id="view-earnings-weekly"></td>
+                        </tr>
+                        <tr>
+                          <th>Monthly</th>
+                          <td id="view-earnings-monthly"></td>
+                        </tr>
+                        <tr>
+                          <th>Total</th>
+                          <td id="view-earnings-total"></td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title">Recent Rides</h6>
+                      <div id="recent-rides-container">
+                        <p class="text-muted">Loading recent rides...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="documents-tab-pane" role="tabpanel" aria-labelledby="documents-tab" tabindex="0">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title">Driving License</h6>
+                      <p class="card-text" id="license-status">Not verified</p>
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="update-license-verified">
+                        <label class="form-check-label" for="update-license-verified">
+                          Mark as verified
+                        </label>
+                      </div>
+                      <button type="button" class="btn btn-primary btn-sm" id="save-license-btn">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title">Vehicle Registration</h6>
+                      <p class="card-text" id="registration-status">Not verified</p>
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="update-registration-verified">
+                        <label class="form-check-label" for="update-registration-verified">
+                          Mark as verified
+                        </label>
+                      </div>
+                      <button type="button" class="btn btn-primary btn-sm" id="save-registration-btn">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title">Insurance</h6>
+                      <p class="card-text" id="insurance-status">Not verified</p>
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="update-insurance-verified">
+                        <label class="form-check-label" for="update-insurance-verified">
+                          Mark as verified
+                        </label>
+                      </div>
+                      <button type="button" class="btn btn-primary btn-sm" id="save-insurance-btn">Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Driver Modal -->
+  <div class="modal fade" id="editDriverModal" tabindex="-1" aria-labelledby="editDriverModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editDriverModalLabel">Edit Driver</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-driver-form">
+            <input type="hidden" id="edit-driver-id">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="edit-name" class="form-label">Full Name *</label>
+                <input type="text" class="form-control" id="edit-name" name="edit-name" required>
+              </div>
+              <div class="col-md-6">
+                <label for="edit-phone" class="form-label">Phone Number *</label>
+                <input type="text" class="form-control" id="edit-phone" name="edit-phone" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="edit-vehicle-number" class="form-label">Vehicle Number *</label>
+                <input type="text" class="form-control" id="edit-vehicle-number" name="edit-vehicle-number" required>
+              </div>
+              <div class="col-md-6">
+                <label for="edit-vehicle-type" class="form-label">Vehicle Type</label>
+                <select class="form-select" id="edit-vehicle-type" name="edit-vehicle-type">
+                  <option value="auto">Auto</option>
+                  <option value="car">Car</option>
+                  <option value="bike">Bike</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="edit-status" class="form-label">Status</label>
+                <select class="form-select" id="edit-status" name="edit-status">
+                  <option value="offline">Offline</option>
+                  <option value="online">Online</option>
+                  <option value="busy">Busy</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Verification Status</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="edit-is-verified" name="edit-is-verified">
+                  <label class="form-check-label" for="edit-is-verified">
+                    Driver is verified
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="update-driver-btn">Update Driver</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    $(document).ready(function() {
+      // Check authentication
+      if (!checkAuth()) return;
+      
+      // Variable to track current page
+      let currentPage = 1;
+      const pageSize = 10;
+      let currentDriverId = null;
+      
+      // Load drivers on page load
+      loadDrivers();
+      
+      // Handle filter form submission
+      $('#driver-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        currentPage = 1;
+        loadDrivers();
+      });
+      
+      // Handle filter reset
+      $('#reset-filter').on('click', function() {
+        $('#filter-status').val('');
+        $('#filter-vehicle-type').val('');
+        $('#filter-verification').val('');
+        $('#filter-phone').val('');
+        currentPage = 1;
+        loadDrivers();
+      });
+      
+      // Handle create driver form submission
+      $('#save-driver-btn').on('click', function() {
+        if (validateDriverForm()) {
+          createDriver();
+        }
+      });
+      
+      // Handle update driver button
+      $('#update-driver-btn').on('click', function() {
+        if (validateEditDriverForm()) {
+          updateDriver();
+        }
+      });
+      
+      // Handle document verification buttons
+      $('#save-license-btn').on('click', function() {
+        updateDriverDocument('license');
+      });
+      
+      $('#save-registration-btn').on('click', function() {
+        updateDriverDocument('registration');
+      });
+      
+      $('#save-insurance-btn').on('click', function() {
+        updateDriverDocument('insurance');
+      });
+      
+      // Functions
+      
+      // Load drivers with filters
+      async function loadDrivers() {
+        try {
+          const status = $('#filter-status').val();
+          const vehicleType = $('#filter-vehicle-type').val();
+          const verification = $('#filter-verification').val();
+          const phone = $('#filter-phone').val();
+          
+          let url = `/api/drivers?page=${currentPage}&limit=${pageSize}`;
+          
+          if (status) url += `&status=${status}`;
+          if (vehicleType) url += `&vehicleType=${vehicleType}`;
+          if (verification) {
+            const isVerified = verification === 'verified' ? 'true' : 'false';
+            url += `&isVerified=${isVerified}`;
+          }
+          if (phone) url += `&phone=${phone}`;
+          
+          const result = await apiRequest(url);
+          
+          if (result && result.success) {
+            displayDrivers(result.data);
+            updatePagination(result.count);
+          }
+        } catch (error) {
+          console.error('Error loading drivers:', error);
+          showAlert('Failed to load drivers', 'danger');
+        }
+      }
+      
+      // Display drivers in table
+      function displayDrivers(drivers) {
+        const tbody = $('#drivers-table tbody');
+        tbody.empty();
+        
+        if (drivers.length === 0) {
+          tbody.html('<tr><td colspan="8" class="text-center">No drivers found</td></tr>');
+          $('#showing-entries').text('Showing 0 entries');
+          return;
+        }
+        
+        drivers.forEach(driver => {
+          const statusClass = getDriverStatusClass(driver.status);
+          const verifiedBadge = driver.isVerified ? 
+            '<span class="badge bg-success">Yes</span>' : 
+            '<span class="badge bg-danger">No</span>';
+          
+          const row = `
+            <tr>
+              <td>${driver._id.substring(0, 8)}...</td>
+              <td>${driver.name}</td>
+              <td>${driver.phone}</td>
+              <td>${formatVehicleInfo(driver)}</td>
+              <td><span class="badge ${statusClass}">${formatStatus(driver.status)}</span></td>
+              <td>${formatRating(driver.rating)}</td>
+              <td>${verifiedBadge}</td>
+              <td>
+                <button class="btn btn-sm btn-info view-driver" data-id="${driver._id}">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-danger delete-driver" data-id="${driver._id}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+        
+        const start = (currentPage - 1) * pageSize + 1;
+        const end = Math.min(start + drivers.length - 1, drivers.length);
+        $('#showing-entries').text(`Showing ${start} to ${end} entries`);
+        
+        // Attach event handlers for buttons
+        $('.view-driver').on('click', function() {
+          const driverId = $(this).data('id');
+          viewDriverDetails(driverId);
+        });
+        
+        $('.delete-driver').on('click', function() {
+          const driverId = $(this).data('id');
+          if (confirm('Are you sure you want to delete this driver?')) {
+            deleteDriver(driverId);
+          }
+        });
+      }
+      
+      // Update pagination
+      function updatePagination(totalCount) {
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const pagination = $('#drivers-pagination');
+        pagination.empty();
+        
+        // Previous button
+        pagination.append(`
+          <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
+          </li>
+        `);
+        
+        // Page numbers
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+          startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+          pagination.append(`
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+              <a class="page-link" href="#" data-page="${i}">${i}</a>
+          </li>
+        `);
+      }
+      
+      // Next button
+      pagination.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
+        </li>
+      `);
+      
+      // Attach event handlers
+      $('.page-link').on('click', function(e) {
+        e.preventDefault();
+        const page = parseInt($(this).data('page'));
+        if (page >= 1 && page <= totalPages) {
+          currentPage = page;
+          loadDrivers();
+        }
+      });
+    }
+    
+    // Validate driver form
+    function validateDriverForm() {
+      const form = $('#create-driver-form')[0];
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return false;
+      }
+      return true;
+    }
+    
+    // Validate edit driver form
+    function validateEditDriverForm() {
+      const form = $('#edit-driver-form')[0];
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return false;
+      }
+      return true;
+    }
+    
+    // Create new driver
+    async function createDriver() {
+      try {
+        const name = $('#driver-name').val();
+        const phone = $('#driver-phone').val();
+        const vehicleNumber = $('#vehicle-number').val();
+        const vehicleType = $('#vehicle-type').val();
+        const lat = $('#driver-lat').val() || 0;
+        const lng = $('#driver-lng').val() || 0;
+        const isVerified = $('#is-verified').is(':checked');
+        const status = $('#driver-status').val();
+        const licenseVerified = $('#license-verified').is(':checked');
+        const registrationVerified = $('#registration-verified').is(':checked');
+        const insuranceVerified = $('#insurance-verified').is(':checked');
+        
+        const driverData = {
+          name,
+          phone,
+          vehicleNumber,
+          vehicleType,
+          currentLocation: {
+            type: 'Point',
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          isVerified,
+          status,
+          documents: {
+            license: {
+              verified: licenseVerified
+            },
+            registration: {
+              verified: registrationVerified
+            },
+            insurance: {
+              verified: insuranceVerified
+            }
+          }
+        };
+        
+        const result = await apiRequest('/api/drivers', 'POST', driverData);
+        
+        if (result && result.success) {
+          $('#createDriverModal').modal('hide');
+          showAlert('Driver added successfully', 'success');
+          loadDrivers();
+          // Clear form
+          $('#create-driver-form')[0].reset();
+        }
+      } catch (error) {
+        console.error('Error creating driver:', error);
+        showAlert('Failed to add driver', 'danger');
+      }
+    }
+    
+    // View driver details
+    async function viewDriverDetails(driverId) {
+      try {
+        currentDriverId = driverId;
+        const result = await apiRequest(`/api/drivers/${driverId}`);
+        
+        if (result && result.success) {
+          const driver = result.data;
+          
+          // Populate driver details
+          $('#view-driver-id').text(driver._id);
+          $('#view-driver-name').text(driver.name);
+          $('#view-driver-phone').text(driver.phone);
+          $('#view-vehicle-number').text(driver.vehicleNumber);
+          $('#view-vehicle-type').text(formatVehicleType(driver.vehicleType));
+          
+          // Status information
+          $('#view-driver-status').html(`<span class="badge ${getDriverStatusClass(driver.status)}">${formatStatus(driver.status)}</span>`);
+          $('#view-driver-rating').html(formatRating(driver.rating));
+          $('#view-driver-verification').html(driver.isVerified ? 
+            '<span class="badge bg-success">Verified</span>' : 
+            '<span class="badge bg-danger">Not Verified</span>');
+          $('#view-driver-created').text(formatDate(driver.createdAt));
+          
+          // Earnings information
+          $('#view-earnings-daily').text(formatCurrency(driver.earnings.daily));
+          $('#view-earnings-weekly').text(formatCurrency(driver.earnings.weekly));
+          $('#view-earnings-monthly').text(formatCurrency(driver.earnings.monthly));
+          $('#view-earnings-total').text(formatCurrency(driver.earnings.total));
+          
+          // Document verification
+          updateDocumentStatus('license', driver.documents.license?.verified);
+          updateDocumentStatus('registration', driver.documents.registration?.verified);
+          updateDocumentStatus('insurance', driver.documents.insurance?.verified);
+          
+          // Show/hide action buttons based on status
+          $('#activate-driver-btn').hide();
+          $('#deactivate-driver-btn').hide();
+          
+          if (driver.status === 'inactive') {
+            $('#activate-driver-btn').show();
+          } else {
+            $('#deactivate-driver-btn').show();
+          }
+          
+          // Setup button click handlers
+          setupDriverActionButtons(driver._id, driver.status);
+          
+          // Load recent rides
+          loadDriverRides(driver._id);
+          
+          // Show the modal
+          $('#viewDriverModal').modal('show');
+        }
+      } catch (error) {
+        console.error('Error loading driver details:', error);
+        showAlert('Failed to load driver details', 'danger');
+      }
+    }
+    
+    // Update document status display
+    function updateDocumentStatus(docType, isVerified) {
+      $(`#${docType}-status`).html(
+        isVerified ? 
+        '<span class="badge bg-success">Verified</span>' : 
+        '<span class="badge bg-danger">Not Verified</span>'
+      );
+      $(`#update-${docType}-verified`).prop('checked', isVerified);
+    }
+    
+    // Load driver's recent rides
+    async function loadDriverRides(driverId) {
+      try {
+        const result = await apiRequest(`/api/rides?driverId=${driverId}&limit=5`);
+        
+        if (result && result.success) {
+          const rides = result.data;
+          const container = $('#recent-rides-container');
+          
+          if (rides.length === 0) {
+            container.html('<p class="text-muted">No rides found for this driver.</p>');
+            return;
+          }
+          
+          let html = '<div class="list-group">';
+          rides.forEach(ride => {
+            const statusClass = getStatusBadgeClass(ride.status);
+            html += `
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <small class="text-muted">${formatDate(ride.timestamps.created)}</small>
+                  <p class="mb-1">From: ${truncateText(ride.pickup.address, 20)}</p>
+                  <p class="mb-0">To: ${truncateText(ride.dropoff.address, 20)}</p>
+                </div>
+                <div class="text-end">
+                  <span class="badge ${statusClass}">${formatStatus(ride.status)}</span>
+                  <p class="mb-0">${formatCurrency(ride.fare.final || ride.fare.estimated)}</p>
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          
+          container.html(html);
+        }
+      } catch (error) {
+        console.error('Error loading driver rides:', error);
+        $('#recent-rides-container').html('<p class="text-danger">Failed to load rides.</p>');
+      }
+    }
+    
+    // Setup driver action buttons
+    function setupDriverActionButtons(driverId, status) {
+      // Edit button
+      $('#edit-driver-btn').off('click').on('click', function() {
+        populateEditForm(driverId);
+      });
+      
+      // Activate button
+      $('#activate-driver-btn').off('click').on('click', function() {
+        updateDriverStatus(driverId, 'online');
+      });
+      
+      // Deactivate button
+      $('#deactivate-driver-btn').off('click').on('click', function() {
+        updateDriverStatus(driverId, 'inactive');
+      });
+      
+      // Delete button
+      $('#delete-driver-btn').off('click').on('click', function() {
+        if (confirm('Are you sure you want to delete this driver? This action cannot be undone.')) {
+          deleteDriver(driverId);
+        }
+      });
+    }
+    
+    // Populate edit form with driver data
+    async function populateEditForm(driverId) {
+      try {
+        const result = await apiRequest(`/api/drivers/${driverId}`);
+        
+        if (result && result.success) {
+          const driver = result.data;
+          
+          $('#edit-driver-id').val(driver._id);
+          $('#edit-name').val(driver.name);
+          $('#edit-phone').val(driver.phone);
+          $('#edit-vehicle-number').val(driver.vehicleNumber);
+          $('#edit-vehicle-type').val(driver.vehicleType);
+          $('#edit-status').val(driver.status);
+          $('#edit-is-verified').prop('checked', driver.isVerified);
+          
+          $('#viewDriverModal').modal('hide');
+          $('#editDriverModal').modal('show');
+        }
+      } catch (error) {
+        console.error('Error loading driver data for edit:', error);
+        showAlert('Failed to load driver data', 'danger');
+      }
+    }
+    
+    // Update driver
+    async function updateDriver() {
+      try {
+        const driverId = $('#edit-driver-id').val();
+        const name = $('#edit-name').val();
+        const phone = $('#edit-phone').val();
+        const vehicleNumber = $('#edit-vehicle-number').val();
+        const vehicleType = $('#edit-vehicle-type').val();
+        const status = $('#edit-status').val();
+        const isVerified = $('#edit-is-verified').is(':checked');
+        
+        const driverData = {
+          name,
+          phone,
+          vehicleNumber,
+          vehicleType,
+          status,
+          isVerified
+        };
+        
+        const result = await apiRequest(`/api/drivers/${driverId}`, 'PUT', driverData);
+        
+        if (result && result.success) {
+          $('#editDriverModal').modal('hide');
+          showAlert('Driver updated successfully', 'success');
+          loadDrivers();
+        }
+      } catch (error) {
+        console.error('Error updating driver:', error);
+        showAlert('Failed to update driver', 'danger');
+      }
+    }
+    
+    // Update driver status
+    async function updateDriverStatus(driverId, status) {
+      try {
+        const result = await apiRequest(`/api/drivers/${driverId}/status`, 'PUT', { status });
+        
+        if (result && result.success) {
+          $('#viewDriverModal').modal('hide');
+          showAlert(`Driver ${status === 'inactive' ? 'deactivated' : 'activated'} successfully`, 'success');
+          loadDrivers();
+        }
+      } catch (error) {
+        console.error('Error updating driver status:', error);
+        showAlert('Failed to update driver status', 'danger');
+      }
+    }
+    
+    // Update driver document verification
+    async function updateDriverDocument(docType) {
+      try {
+        const isVerified = $(`#update-${docType}-verified`).is(':checked');
+        const document = {};
+        document[`documents.${docType}.verified`] = isVerified;
+        
+        const result = await apiRequest(`/api/drivers/${currentDriverId}`, 'PUT', document);
+        
+        if (result && result.success) {
+          showAlert(`${docType.charAt(0).toUpperCase() + docType.slice(1)} verification updated`, 'success');
+          updateDocumentStatus(docType, isVerified);
+        }
+      } catch (error) {
+        console.error('Error updating document verification:', error);
+        showAlert('Failed to update document verification', 'danger');
+      }
+    }
+    
+    // Delete driver
+    async function deleteDriver(driverId) {
+      try {
+        const result = await apiRequest(`/api/drivers/${driverId}`, 'DELETE');
+        
+        if (result && result.success) {
+          if ($('#viewDriverModal').hasClass('show')) {
+            $('#viewDriverModal').modal('hide');
+          }
+          showAlert('Driver deleted successfully', 'success');
+          loadDrivers();
+        }
+      } catch (error) {
+        console.error('Error deleting driver:', error);
+        showAlert('Failed to delete driver', 'danger');
+      }
+    }
+    
+    // Helper Functions
+    
+    // Format vehicle info
+    function formatVehicleInfo(driver) {
+      return `${formatVehicleType(driver.vehicleType)} - ${driver.vehicleNumber}`;
+    }
+    
+    // Format vehicle type
+    function formatVehicleType(type) {
+      const types = {
+        'auto': 'Auto Rickshaw',
+        'car': 'Car',
+        'bike': 'Bike'
+      };
+      return types[type] || type;
+    }
+    
+    // Format rating with stars
+    function formatRating(rating) {
+      const fullStars = Math.floor(rating);
+      const halfStar = rating % 1 >= 0.5;
+      let html = '';
+      
+      for (let i = 1; i <= 5; i++) {
+        if (i <= fullStars) {
+          html += '<i class="fas fa-star text-warning"></i>';
+        } else if (i === fullStars + 1 && halfStar) {
+          html += '<i class="fas fa-star-half-alt text-warning"></i>';
+        } else {
+          html += '<i class="far fa-star text-warning"></i>';
+        }
+      }
+      
+      return `${html} <span class="ms-1">(${rating.toFixed(1)})</span>`;
+    }
+    
+    // Get driver status class
+    function getDriverStatusClass(status) {
+      switch(status) {
+        case 'online': return 'bg-success';
+        case 'offline': return 'bg-secondary';
+        case 'busy': return 'bg-primary';
+        case 'inactive': return 'bg-danger';
+        default: return 'bg-secondary';
+      }
+    }
+    
+    // Truncate text with ellipsis
+    function truncateText(text, length) {
+      if (!text) return '';
+      return text.length > length ? text.substring(0, length) + '...' : text;
+    }
+    
+    // Format status
+    function formatStatus(status) {
+      return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  });
+</script>
+
+<style>
+  /* Rating stars size */
+  .fa-star, .fa-star-half-alt {
+    font-size: 0.8rem;
+  }
+  
+  /* Badge colors for ride status */
+  .badge-pending {
+    background-color: #f6c23e;
+  }
+  
+  .badge-accepted {
+    background-color: #4e73df;
+  }
+  
+  .badge-in-progress {
+    background-color: #36b9cc;
+  }
+  
+  .badge-completed {
+    background-color: #1cc88a;
+  }
+  
+  .badge-cancelled {
+    background-color: #e74a3b;
+  }
+</style>

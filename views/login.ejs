@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moevit Admin - Login</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Dashboard custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h3>Moevit Admin</h3>
+        <p>Dashboard Login</p>
+      </div>
+      
+      <div class="alert-container"></div>
+      
+      <form id="login-form">
+        <div class="form-group mb-3">
+          <label for="email">Email Address</label>
+          <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="form-group mb-3">
+          <label for="password">Password</label>
+          <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Check if already logged in
+      if (localStorage.getItem('token')) {
+        window.location.href = '/dashboard';
+      }
+      
+      // Handle login form submission
+      $('#login-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const email = $('#email').val();
+        const password = $('#password').val();
+        
+        // Call login API
+        fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Save token and user data
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Redirect to dashboard
+            window.location.href = '/dashboard';
+          } else {
+            showAlert(data.message || 'Login failed', 'danger');
+          }
+        })
+        .catch(error => {
+          console.error('Login error:', error);
+          showAlert('An error occurred during login. Please try again.', 'danger');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

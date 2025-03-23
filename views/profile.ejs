@@ -1,0 +1,154 @@
+<div class="row">
+    <div class="col-md-6 mx-auto">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Your Profile</h6>
+        </div>
+        <div class="card-body">
+          <div class="alert-container"></div>
+          <form id="profile-form">
+            <div class="mb-3">
+              <label for="profile-name" class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="profile-name" required>
+            </div>
+            <div class="mb-3">
+              <label for="profile-email" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="profile-email" required readonly>
+            </div>
+            <div class="mb-3">
+              <label for="profile-role" class="form-label">Role</label>
+              <input type="text" class="form-control" id="profile-role" readonly>
+            </div>
+            <hr>
+            <h6 class="mb-3">Change Password</h6>
+            <div class="mb-3">
+              <label for="current-password" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="current-password">
+            </div>
+            <div class="mb-3">
+              <label for="new-password" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="new-password" minlength="6">
+            </div>
+            <div class="mb-3">
+              <label for="confirm-password" class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirm-password" minlength="6">
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Update Profile</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    $(document).ready(function() {
+      // Check authentication
+      if (!checkAuth()) return;
+      
+      // Load user profile
+      loadProfile();
+      
+      // Handle form submission
+      $('#profile-form').on('submit', function(e) {
+        e.preventDefault();
+        updateProfile();
+      });
+      
+      // Functions
+      
+      // Load user profile
+      function loadProfile() {
+        try {
+          // Get user from localStorage
+          const user = JSON.parse(localStorage.getItem('user'));
+          
+          if (user) {
+            $('#profile-name').val(user.name);
+            $('#profile-email').val(user.email);
+            $('#profile-role').val(formatRole(user.role));
+          } else {
+            showAlert('Unable to load profile. Please login again.', 'danger');
+          }
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          showAlert('Failed to load profile', 'danger');
+        }
+      }
+      
+      // Update profile
+      async function updateProfile() {
+        try {
+          // Get user ID from localStorage
+          const user = JSON.parse(localStorage.getItem('user'));
+          
+          if (!user || !user._id) {
+            showAlert('Unable to update profile. Please login again.', 'danger');
+            return;
+          }
+          
+          const name = $('#profile-name').val();
+          const currentPassword = $('#current-password').val();
+          const newPassword = $('#new-password').val();
+          const confirmPassword = $('#confirm-password').val();
+          
+          // Validate passwords if attempting to change password
+          if (currentPassword || newPassword || confirmPassword) {
+            if (!currentPassword) {
+              showAlert('Please enter your current password', 'warning');
+              return;
+            }
+            
+            if (!newPassword) {
+              showAlert('Please enter a new password', 'warning');
+              return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+              showAlert('New passwords do not match', 'warning');
+              return;
+            }
+          }
+          
+          // Prepare update data
+          const updateData = {
+            name
+          };
+          
+          // Include password if provided
+          if (newPassword) {
+            updateData.currentPassword = currentPassword;
+            updateData.password = newPassword;
+          }
+          
+          // Call API to update profile
+          const result = await apiRequest(`/api/users/${user._id}`, 'PUT', updateData);
+          
+          if (result && result.success) {
+            // Update user in localStorage
+            user.name = name;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Update displayed name in sidebar
+            $('#username').text(name);
+            
+            // Clear password fields
+            $('#current-password').val('');
+            $('#new-password').val('');
+            $('#confirm-password').val('');
+            
+            showAlert('Profile updated successfully', 'success');
+          }
+        } catch (error) {
+          console.error('Error updating profile:', error);
+          showAlert('Failed to update profile. Please check your current password.', 'danger');
+        }
+      }
+      
+      // Format role
+      function formatRole(role) {
+        return role.charAt(0).toUpperCase() + role.slice(1);
+      }
+    });
+  </script>

@@ -1,0 +1,909 @@
+<!-- Search and Filter Row -->
+<div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Search & Filter</h5>
+          <form id="ride-filter-form" class="row g-3">
+            <div class="col-md-3">
+              <label for="filter-status" class="form-label">Status</label>
+              <select class="form-select" id="filter-status">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="arrived">Driver Arrived</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filter-date-from" class="form-label">From Date</label>
+              <input type="date" class="form-control" id="filter-date-from">
+            </div>
+            <div class="col-md-3">
+              <label for="filter-date-to" class="form-label">To Date</label>
+              <input type="date" class="form-control" id="filter-date-to">
+            </div>
+            <div class="col-md-3">
+              <label for="filter-customer" class="form-label">Customer Phone</label>
+              <input type="text" class="form-control" id="filter-customer" placeholder="Phone number">
+            </div>
+            <div class="col-12 mt-3">
+              <button type="submit" class="btn btn-primary me-2">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button type="button" id="reset-filter" class="btn btn-secondary">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Rides Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">All Rides</h6>
+          <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRideModal">
+            <i class="fas fa-plus"></i> Create Ride
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="alert-container"></div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-dashboard" id="rides-table" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Driver</th>
+                  <th>Fare</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Table rows will be added here via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+              <span id="showing-entries">Showing 0 entries</span>
+            </div>
+            <div class="pagination-container">
+              <ul class="pagination" id="rides-pagination">
+                <!-- Pagination links will be added here via JavaScript -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create Ride Modal -->
+  <div class="modal fade" id="createRideModal" tabindex="-1" aria-labelledby="createRideModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createRideModalLabel">Create New Ride</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="create-ride-form">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="customer-name" class="form-label">Customer Name</label>
+                <input type="text" class="form-control" id="customer-name" name="customer-name">
+              </div>
+              <div class="col-md-6">
+                <label for="customer-phone" class="form-label">Customer Phone *</label>
+                <input type="text" class="form-control" id="customer-phone" name="customer-phone" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label for="pickup-address" class="form-label">Pickup Address *</label>
+                <input type="text" class="form-control" id="pickup-address" name="pickup-address" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="pickup-lat" class="form-label">Pickup Latitude</label>
+                <input type="number" step="any" class="form-control" id="pickup-lat" name="pickup-lat">
+              </div>
+              <div class="col-md-6">
+                <label for="pickup-lng" class="form-label">Pickup Longitude</label>
+                <input type="number" step="any" class="form-control" id="pickup-lng" name="pickup-lng">
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label for="dropoff-address" class="form-label">Dropoff Address *</label>
+                <input type="text" class="form-control" id="dropoff-address" name="dropoff-address" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="dropoff-lat" class="form-label">Dropoff Latitude</label>
+                <input type="number" step="any" class="form-control" id="dropoff-lat" name="dropoff-lat">
+              </div>
+              <div class="col-md-6">
+                <label for="dropoff-lng" class="form-label">Dropoff Longitude</label>
+                <input type="number" step="any" class="form-control" id="dropoff-lng" name="dropoff-lng">
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="ride-type" class="form-label">Ride Type</label>
+                <select class="form-select" id="ride-type" name="ride-type">
+                  <option value="auto">Auto</option>
+                  <option value="car">Car</option>
+                  <option value="bike">Bike</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="estimated-fare" class="form-label">Estimated Fare (₹) *</label>
+                <input type="number" step="0.01" class="form-control" id="estimated-fare" name="estimated-fare" required>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Schedule for Later?</label>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="is-scheduled" name="is-scheduled">
+                  <label class="form-check-label" for="is-scheduled">
+                    Schedule this ride
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6 scheduled-time-container" style="display: none;">
+                <label for="scheduled-time" class="form-label">Scheduled Time</label>
+                <input type="datetime-local" class="form-control" id="scheduled-time" name="scheduled-time">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-ride-btn">Create Ride</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- View Ride Modal -->
+  <div class="modal fade" id="viewRideModal" tabindex="-1" aria-labelledby="viewRideModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewRideModalLabel">Ride Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-container"></div>
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Ride Information</h6>
+              <table class="table">
+                <tr>
+                  <th>Ride ID</th>
+                  <td id="view-ride-id"></td>
+                </tr>
+                <tr>
+                  <th>Status</th>
+                  <td id="view-ride-status"></td>
+                </tr>
+                <tr>
+                  <th>Created</th>
+                  <td id="view-ride-created"></td>
+                </tr>
+                <tr>
+                  <th>Ride Type</th>
+                  <td id="view-ride-type"></td>
+                </tr>
+                <tr>
+                  <th>Fare</th>
+                  <td id="view-ride-fare"></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <h6>Customer Information</h6>
+              <table class="table">
+                <tr>
+                  <th>Name</th>
+                  <td id="view-customer-name"></td>
+                </tr>
+                <tr>
+                  <th>Phone</th>
+                  <td id="view-customer-phone"></td>
+                </tr>
+                <tr>
+                  <th>Pickup</th>
+                  <td id="view-pickup-address"></td>
+                </tr>
+                <tr>
+                  <th>Dropoff</th>
+                  <td id="view-dropoff-address"></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+          
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <h6>Driver Information</h6>
+              <div id="no-driver-assigned" class="alert alert-warning">No driver assigned yet</div>
+              <table class="table" id="driver-info-table" style="display: none;">
+                <tr>
+                  <th>Name</th>
+                  <td id="view-driver-name"></td>
+                </tr>
+                <tr>
+                  <th>Phone</th>
+                  <td id="view-driver-phone"></td>
+                </tr>
+                <tr>
+                  <th>Vehicle</th>
+                  <td id="view-driver-vehicle"></td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <h6>Timeline</h6>
+              <ul class="timeline" id="ride-timeline">
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Ride Created</h6>
+                    <p class="timeline-date" id="timeline-created"></p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6>Actions</h6>
+              <div class="btn-group" role="group" id="ride-action-btns">
+                <button type="button" class="btn btn-outline-primary" id="assign-driver-btn" style="display: none;">
+                  <i class="fas fa-user-plus"></i> Assign Driver
+                </button>
+                <button type="button" class="btn btn-outline-success" id="complete-ride-btn" style="display: none;">
+                  <i class="fas fa-check"></i> Complete
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="cancel-ride-btn" style="display: none;">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Assign Driver Modal -->
+  <div class="modal fade" id="assignDriverModal" tabindex="-1" aria-labelledby="assignDriverModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="assignDriverModalLabel">Assign Driver</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-container"></div>
+          <form id="assign-driver-form">
+            <input type="hidden" id="assign-ride-id">
+            <div class="mb-3">
+              <label for="driver-select" class="form-label">Select Driver</label>
+              <select class="form-select" id="driver-select" required>
+                <option value="">Select a driver...</option>
+                <!-- Driver options will be added here via JavaScript -->
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-assign-btn">Assign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    $(document).ready(function() {
+      // Check authentication
+      if (!checkAuth()) return;
+      
+      // Set default date values for filter
+      const today = new Date();
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      
+      $('#filter-date-from').val(formatDateForInput(lastWeek));
+      $('#filter-date-to').val(formatDateForInput(today));
+      
+      // Variable to track current page
+      let currentPage = 1;
+      const pageSize = 10;
+      
+      // Load rides on page load
+      loadRides();
+      
+      // Handle schedule checkbox
+      $('#is-scheduled').on('change', function() {
+        if ($(this).is(':checked')) {
+          $('.scheduled-time-container').show();
+        } else {
+          $('.scheduled-time-container').hide();
+        }
+      });
+      
+      // Handle filter form submission
+      $('#ride-filter-form').on('submit', function(e) {
+        e.preventDefault();
+        currentPage = 1;
+        loadRides();
+      });
+      
+      // Handle filter reset
+      $('#reset-filter').on('click', function() {
+        $('#filter-status').val('');
+        $('#filter-date-from').val(formatDateForInput(lastWeek));
+        $('#filter-date-to').val(formatDateForInput(today));
+        $('#filter-customer').val('');
+        currentPage = 1;
+        loadRides();
+      });
+      
+      // Handle create ride form submission
+      $('#save-ride-btn').on('click', function() {
+        if (validateRideForm()) {
+          createRide();
+        }
+      });
+      
+      // Handle assign driver confirmation
+      $('#confirm-assign-btn').on('click', function() {
+        assignDriver();
+      });
+      
+      // Load active drivers when assign driver modal opens
+      $('#assignDriverModal').on('show.bs.modal', function() {
+        loadAvailableDrivers();
+      });
+      
+      // Functions
+      
+      // Load rides with filters
+      async function loadRides() {
+        try {
+          const status = $('#filter-status').val();
+          const startDate = $('#filter-date-from').val();
+          const endDate = $('#filter-date-to').val();
+          const customerId = $('#filter-customer').val();
+          
+          let url = `/api/rides?page=${currentPage}&limit=${pageSize}`;
+          
+          if (status) url += `&status=${status}`;
+          if (startDate) url += `&startDate=${startDate}T00:00:00Z`;
+          if (endDate) url += `&endDate=${endDate}T23:59:59Z`;
+          if (customerId) url += `&customerId=${customerId}`;
+          
+          const result = await apiRequest(url);
+          
+          if (result && result.success) {
+            displayRides(result.data);
+            updatePagination(result.count);
+          }
+        } catch (error) {
+          console.error('Error loading rides:', error);
+          showAlert('Failed to load rides', 'danger');
+        }
+      }
+      
+      // Display rides in table
+      function displayRides(rides) {
+        const tbody = $('#rides-table tbody');
+        tbody.empty();
+        
+        if (rides.length === 0) {
+          tbody.html('<tr><td colspan="9" class="text-center">No rides found</td></tr>');
+          $('#showing-entries').text('Showing 0 entries');
+          return;
+        }
+        
+        rides.forEach(ride => {
+          const statusClass = getStatusBadgeClass(ride.status);
+          const driverName = ride.driver ? ride.driver.name : 'Not Assigned';
+          const row = `
+            <tr>
+              <td>${ride._id.substring(0, 8)}...</td>
+              <td>${ride.customer.name || ride.customer.phone}</td>
+              <td>${truncateText(ride.pickup.address, 15)}</td>
+              <td>${truncateText(ride.dropoff.address, 15)}</td>
+              <td>${driverName}</td>
+              <td>${formatCurrency(ride.fare.final || ride.fare.estimated)}</td>
+              <td><span class="badge ${statusClass}">${formatStatus(ride.status)}</span></td>
+              <td>${formatDate(ride.timestamps.created)}</td>
+              <td>
+                <button class="btn btn-sm btn-info view-ride" data-id="${ride._id}">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+        
+        const start = (currentPage - 1) * pageSize + 1;
+        const end = Math.min(start + rides.length - 1, rides.length);
+        $('#showing-entries').text(`Showing ${start} to ${end} entries`);
+        
+        // Attach event handlers for view buttons
+        $('.view-ride').on('click', function() {
+          const rideId = $(this).data('id');
+          viewRideDetails(rideId);
+        });
+      }
+      
+      // Update pagination
+      function updatePagination(totalCount) {
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const pagination = $('#rides-pagination');
+        pagination.empty();
+        
+        // Previous button
+        pagination.append(`
+          <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
+          </li>
+        `);
+        
+        // Page numbers
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        
+        if (endPage - startPage < 4) {
+          startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+          pagination.append(`
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+              <a class="page-link" href="#" data-page="${i}">${i}</a>
+            </li>
+          `);
+        }
+        
+        // Next button
+        pagination.append(`
+          <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
+          </li>
+        `);
+        
+        // Attach event handlers
+        $('.page-link').on('click', function(e) {
+          e.preventDefault();
+          const page = parseInt($(this).data('page'));
+          if (page >= 1 && page <= totalPages) {
+            currentPage = page;
+            loadRides();
+          }
+        });
+      }
+      
+      // Validate ride form
+      function validateRideForm() {
+        const form = $('#create-ride-form')[0];
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return false;
+        }
+        return true;
+      }
+      
+      // Create new ride
+      async function createRide() {
+        try {
+          const customerName = $('#customer-name').val();
+          const customerPhone = $('#customer-phone').val();
+          const pickupAddress = $('#pickup-address').val();
+          const pickupLat = $('#pickup-lat').val() || 0;
+          const pickupLng = $('#pickup-lng').val() || 0;
+          const dropoffAddress = $('#dropoff-address').val();
+          const dropoffLat = $('#dropoff-lat').val() || 0;
+          const dropoffLng = $('#dropoff-lng').val() || 0;
+          const rideType = $('#ride-type').val();
+          const estimatedFare = $('#estimated-fare').val();
+          const isScheduled = $('#is-scheduled').is(':checked');
+          const scheduledTime = $('#scheduled-time').val();
+          
+          const rideData = {
+            customer: {
+              name: customerName,
+              phone: customerPhone
+            },
+            pickup: {
+              address: pickupAddress,
+              location: {
+                type: 'Point',
+                coordinates: [parseFloat(pickupLng), parseFloat(pickupLat)]
+              }
+            },
+            dropoff: {
+              address: dropoffAddress,
+              location: {
+                type: 'Point',
+                coordinates: [parseFloat(dropoffLng), parseFloat(dropoffLat)]
+              }
+            },
+            rideType,
+            fare: {
+              estimated: parseFloat(estimatedFare),
+              currency: 'INR'
+            },
+            schedule: {
+              isScheduled,
+              scheduledTime: isScheduled ? new Date(scheduledTime).toISOString() : null
+            }
+          };
+          
+          const result = await apiRequest('/api/rides', 'POST', rideData);
+          
+          if (result && result.success) {
+            $('#createRideModal').modal('hide');
+            showAlert('Ride created successfully', 'success');
+            loadRides();
+            // Clear form
+            $('#create-ride-form')[0].reset();
+          }
+        } catch (error) {
+          console.error('Error creating ride:', error);
+          showAlert('Failed to create ride', 'danger');
+        }
+      }
+      
+      // View ride details
+      async function viewRideDetails(rideId) {
+        try {
+          const result = await apiRequest(`/api/rides/${rideId}`);
+          
+          if (result && result.success) {
+            const ride = result.data;
+            
+            // Populate ride details
+            $('#view-ride-id').text(ride._id);
+            $('#view-ride-status').html(`<span class="badge ${getStatusBadgeClass(ride.status)}">${formatStatus(ride.status)}</span>`);
+            $('#view-ride-created').text(formatDate(ride.timestamps.created));
+            $('#view-ride-type').text(formatRideType(ride.rideType));
+            $('#view-ride-fare').text(formatCurrency(ride.fare.final || ride.fare.estimated));
+            
+            // Populate customer details
+            $('#view-customer-name').text(ride.customer.name || 'N/A');
+            $('#view-customer-phone').text(ride.customer.phone);
+            $('#view-pickup-address').text(ride.pickup.address);
+            $('#view-dropoff-address').text(ride.dropoff.address);
+            
+            // Populate driver details if assigned
+            if (ride.driver) {
+              $('#no-driver-assigned').hide();
+              $('#driver-info-table').show();
+              $('#view-driver-name').text(ride.driver.name);
+              $('#view-driver-phone').text(ride.driver.phone);
+              $('#view-driver-vehicle').text(`${formatRideType(ride.driver.vehicleType)} (${ride.driver.vehicleNumber})`);
+            } else {
+              $('#no-driver-assigned').show();
+              $('#driver-info-table').hide();
+            }
+            
+            // Populate timeline
+            const timeline = $('#ride-timeline');
+            timeline.empty();
+            
+            // Created timestamp
+            timeline.append(`
+              <li class="timeline-item">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                  <h6 class="timeline-title">Ride Created</h6>
+                  <p class="timeline-date">${formatDate(ride.timestamps.created)}</p>
+                </div>
+              </li>
+            `);
+            
+            // Accepted timestamp
+            if (ride.timestamps.accepted) {
+              timeline.append(`
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Driver Accepted</h6>
+                    <p class="timeline-date">${formatDate(ride.timestamps.accepted)}</p>
+                  </div>
+                </li>
+              `);
+            }
+            
+            // Arrived timestamp
+            if (ride.timestamps.arrived) {
+              timeline.append(`
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Driver Arrived</h6>
+                    <p class="timeline-date">${formatDate(ride.timestamps.arrived)}</p>
+                  </div>
+                </li>
+              `);
+            }
+            
+            // Started timestamp
+            if (ride.timestamps.started) {
+              timeline.append(`
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Ride Started</h6>
+                    <p class="timeline-date">${formatDate(ride.timestamps.started)}</p>
+                  </div>
+                </li>
+              `);
+            }
+            
+            // Completed timestamp
+            if (ride.timestamps.completed) {
+              timeline.append(`
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Ride Completed</h6>
+                    <p class="timeline-date">${formatDate(ride.timestamps.completed)}</p>
+                  </div>
+                </li>
+              `);
+            }
+            
+            // Cancelled timestamp
+            if (ride.timestamps.cancelled) {
+              timeline.append(`
+                <li class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <h6 class="timeline-title">Ride Cancelled</h6>
+                    <p class="timeline-date">${formatDate(ride.timestamps.cancelled)}</p>
+                  </div>
+                </li>
+              `);
+            }
+            
+            // Show appropriate action buttons based on status
+            $('#assign-driver-btn').hide();
+            $('#complete-ride-btn').hide();
+            $('#cancel-ride-btn').hide();
+            
+            if (ride.status === 'pending') {
+              $('#assign-driver-btn').show();
+              $('#cancel-ride-btn').show();
+            } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) {
+              $('#complete-ride-btn').show();
+              $('#cancel-ride-btn').show();
+            }
+            
+            // Set ride ID for actions
+            $('#assign-ride-id').val(ride._id);
+            
+            // Setup button click handlers
+            setupActionButtons(ride._id, ride.status);
+            
+            // Show the modal
+            $('#viewRideModal').modal('show');
+          }
+        } catch (error) {
+          console.error('Error loading ride details:', error);
+          showAlert('Failed to load ride details', 'danger');
+        }
+      }
+      
+      // Setup action buttons
+      function setupActionButtons(rideId, status) {
+        // Assign driver button
+        $('#assign-driver-btn').off('click').on('click', function() {
+          $('#assignDriverModal').modal('show');
+        });
+        
+        // Complete ride button
+        $('#complete-ride-btn').off('click').on('click', function() {
+          if (confirm('Are you sure you want to mark this ride as completed?')) {
+            updateRideStatus(rideId, 'completed');
+          }
+        });
+        
+        // Cancel ride button
+        $('#cancel-ride-btn').off('click').on('click', function() {
+          if (confirm('Are you sure you want to cancel this ride?')) {
+            updateRideStatus(rideId, 'cancelled');
+          }
+        });
+      }
+      
+      // Update ride status
+      async function updateRideStatus(rideId, status) {
+        try {
+          const result = await apiRequest(`/api/rides/${rideId}/status`, 'PUT', { status });
+          
+          if (result && result.success) {
+            showAlert(`Ride ${status} successfully`, 'success');
+            $('#viewRideModal').modal('hide');
+            loadRides();
+          }
+        } catch (error) {
+          console.error('Error updating ride status:', error);
+          showAlert('Failed to update ride status', 'danger');
+        }
+      }
+      
+      // Load available drivers
+      async function loadAvailableDrivers() {
+        try {
+          const result = await apiRequest('/api/drivers?status=online');
+          
+          if (result && result.success) {
+            const driverSelect = $('#driver-select');
+            driverSelect.empty();
+            driverSelect.append('<option value="">Select a driver...</option>');
+            
+            result.data.forEach(driver => {
+              driverSelect.append(`<option value="${driver._id}">${driver.name} (${formatRideType(driver.vehicleType)} - ${driver.vehicleNumber})</option>`);
+            });
+          }
+        } catch (error) {
+            console.error('Error loading drivers:', error);
+            showAlert('Failed to load available drivers', 'danger');
+          }
+        }
+        
+        // Assign driver to ride
+        async function assignDriver() {
+          try {
+            const rideId = $('#assign-ride-id').val();
+            const driverId = $('#driver-select').val();
+            
+            if (!driverId) {
+              showAlert('Please select a driver', 'warning');
+              return;
+            }
+            
+            const result = await apiRequest(`/api/rides/${rideId}/assign`, 'PUT', { driverId });
+            
+            if (result && result.success) {
+              showAlert('Driver assigned successfully', 'success');
+              $('#assignDriverModal').modal('hide');
+              $('#viewRideModal').modal('hide');
+              loadRides();
+            }
+          } catch (error) {
+            console.error('Error assigning driver:', error);
+            showAlert('Failed to assign driver', 'danger');
+          }
+        }
+        
+        // Helper Functions
+        
+        // Format date for input fields
+        function formatDateForInput(date) {
+          return date.toISOString().split('T')[0];
+        }
+        
+        // Truncate text with ellipsis
+        function truncateText(text, length) {
+          if (!text) return '';
+          return text.length > length ? text.substring(0, length) + '...' : text;
+        }
+        
+        // Format ride type
+        function formatRideType(type) {
+          const types = {
+            'auto': 'Auto Rickshaw',
+            'car': 'Car',
+            'bike': 'Bike'
+          };
+          return types[type] || type;
+        }
+        
+        // Get status badge class
+        function getStatusBadgeClass(status) {
+          switch(status) {
+            case 'pending': return 'badge-pending';
+            case 'accepted': return 'badge-accepted';
+            case 'arrived': 
+            case 'in_progress': return 'badge-in-progress';
+            case 'completed': return 'badge-completed';
+            case 'cancelled': return 'badge-cancelled';
+            default: return 'badge-secondary';
+          }
+        }
+        
+        // Format status
+        function formatStatus(status) {
+          return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+      });
+    </script>
+    
+    <style>
+      /* Timeline styles */
+      .timeline {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        position: relative;
+      }
+      
+      .timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #ddd;
+        left: 12px;
+        margin-left: -1px;
+      }
+      
+      .timeline-item {
+        position: relative;
+        margin-bottom: 15px;
+        padding-left: 30px;
+      }
+      
+      .timeline-marker {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #4e73df;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #4e73df;
+      }
+      
+      .timeline-content {
+        padding: 0;
+      }
+      
+      .timeline-title {
+        margin: 0;
+        font-size: 14px;
+      }
+      
+      .timeline-date {
+        margin: 0;
+        font-size: 12px;
+        color: #666;
+      }
+    </style>

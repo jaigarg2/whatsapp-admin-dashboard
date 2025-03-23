@@ -1,0 +1,380 @@
+<!-- Dashboard Stats Row -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card card-dashboard primary">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="card-title">Today's Rides</div>
+              <div class="card-value" id="today-rides">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-taxi fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card card-dashboard success">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="card-title">Today's Earnings</div>
+              <div class="card-value" id="today-earnings">₹0.00</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card card-dashboard warning">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="card-title">Active Drivers</div>
+              <div class="card-value" id="active-drivers">0</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="card card-dashboard danger">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="card-title">Completion Rate</div>
+              <div class="card-value" id="completion-rate">0%</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+          <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
+          <div class="dropdown no-arrow">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="earningsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-calendar-alt"></i> Weekly
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="earningsDropdown">
+              <li><a class="dropdown-item earnings-period" href="#" data-period="daily">Daily</a></li>
+              <li><a class="dropdown-item earnings-period" href="#" data-period="weekly">Weekly</a></li>
+              <li><a class="dropdown-item earnings-period" href="#" data-period="monthly">Monthly</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-area">
+            <canvas id="earningsChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Ride Status Distribution</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-pie pt-4">
+            <canvas id="rideStatusChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Latest Rides Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Latest Rides</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-dashboard" id="latest-rides-table" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Fare</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Table rows will be added here via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    $(document).ready(function() {
+      // Check authentication
+      if (!checkAuth()) return;
+      
+      // Fetch dashboard data
+      fetchDashboardData();
+      
+      // Set up earnings chart with default period (weekly)
+      fetchEarningsData('weekly');
+      
+      // Handle period change for earnings chart
+      $('.earnings-period').on('click', function(e) {
+        e.preventDefault();
+        const period = $(this).data('period');
+        $('#earningsDropdown').text($(this).text());
+        fetchEarningsData(period);
+      });
+      
+      // Fetch dashboard data
+      async function fetchDashboardData() {
+        try {
+          const result = await apiRequest('/api/dashboard');
+          
+          if (result && result.success) {
+            const data = result.data;
+            
+            // Update stats
+            $('#today-rides').text(data.rides.today);
+            $('#today-earnings').text(formatCurrency(data.earnings.today));
+            $('#active-drivers').text(data.drivers.active);
+            
+            // Calculate completion rate
+            const totalRides = data.rides.completed + data.rides.cancelled;
+            const completionRate = totalRides > 0 
+              ? Math.round((data.rides.completed / totalRides) * 100) 
+              : 0;
+            $('#completion-rate').text(completionRate + '%');
+            
+            // Populate latest rides table
+            const tbody = $('#latest-rides-table tbody');
+            tbody.empty();
+            
+            data.latestRides.forEach(ride => {
+              const statusClass = getStatusBadgeClass(ride.status);
+              const row = `
+                <tr>
+                  <td>${ride._id.substring(0, 8)}...</td>
+                  <td>${ride.customer.name || ride.customer.phone}</td>
+                  <td>${ride.pickup.address.substring(0, 15)}...</td>
+                  <td>${ride.dropoff.address.substring(0, 15)}...</td>
+                  <td>${formatCurrency(ride.fare.final || ride.fare.estimated)}</td>
+                  <td><span class="badge ${statusClass}">${formatStatus(ride.status)}</span></td>
+                  <td>${formatDate(ride.timestamps.created)}</td>
+                </tr>
+              `;
+              tbody.append(row);
+            });
+            
+            // Create ride status chart
+            createRideStatusChart(data.rides);
+          }
+        } catch (error) {
+          console.error('Error fetching dashboard data:', error);
+          showAlert('Failed to load dashboard data', 'danger');
+        }
+      }
+      
+      // Fetch earnings data by period
+      async function fetchEarningsData(period) {
+        try {
+          const result = await apiRequest(`/api/dashboard/earnings?period=${period}`);
+          
+          if (result && result.success) {
+            createEarningsChart(result.data, period);
+          }
+        } catch (error) {
+          console.error('Error fetching earnings data:', error);
+          showAlert('Failed to load earnings data', 'danger');
+        }
+      }
+      
+      // Create earnings chart
+      function createEarningsChart(data, period) {
+        const ctx = document.getElementById('earningsChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (window.earningsChart) {
+          window.earningsChart.destroy();
+        }
+        
+        // Prepare labels and data
+        let labels, earningsData;
+        
+        if (period === 'daily') {
+          labels = data.earnings.map(item => formatDateShort(item.date));
+          earningsData = data.earnings.map(item => item.earnings);
+        } else if (period === 'weekly') {
+          labels = data.earnings.map(item => `Week ${item.week.split('-W')[1]}`);
+          earningsData = data.earnings.map(item => item.earnings);
+        } else if (period === 'monthly') {
+          labels = data.earnings.map(item => formatMonthYear(item.month));
+          earningsData = data.earnings.map(item => item.earnings);
+        }
+        
+        // Create chart
+        window.earningsChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Earnings',
+              lineTension: 0.3,
+              backgroundColor: 'rgba(78, 115, 223, 0.05)',
+              borderColor: 'rgba(78, 115, 223, 1)',
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+              pointBorderColor: 'rgba(78, 115, 223, 1)',
+              pointHoverRadius: 3,
+              pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+              pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+              pointHitRadius: 10,
+              pointBorderWidth: 2,
+              data: earningsData
+            }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                left: 10,
+                right: 25,
+                top: 25,
+                bottom: 0
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  display: false,
+                  drawBorder: false
+                }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return '₹' + value;
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return 'Earnings: ' + formatCurrency(context.raw);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // Create ride status chart
+      function createRideStatusChart(rideData) {
+        const ctx = document.getElementById('rideStatusChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (window.rideStatusChart) {
+          window.rideStatusChart.destroy();
+        }
+        
+        // Create chart
+        window.rideStatusChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Completed', 'Cancelled', 'In Progress', 'Pending'],
+          datasets: [{
+            data: [
+              rideData.completed || 0, 
+              rideData.cancelled || 0,
+              (rideData.accepted || 0) + (rideData.in_progress || 0) + (rideData.arrived || 0),
+              rideData.pending || 0
+            ],
+            backgroundColor: ['#1cc88a', '#e74a3b', '#36b9cc', '#f6c23e'],
+            hoverBackgroundColor: ['#17a673', '#d52a1a', '#2c9faf', '#dda20a'],
+            hoverBorderColor: 'rgba(234, 236, 244, 1)',
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = Math.round((value / total) * 100);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+    
+    // Helper functions
+    function getStatusBadgeClass(status) {
+      switch(status) {
+        case 'pending': return 'badge-pending';
+        case 'accepted': return 'badge-accepted';
+        case 'arrived': 
+        case 'in_progress': return 'badge-in-progress';
+        case 'completed': return 'badge-completed';
+        case 'cancelled': return 'badge-cancelled';
+        default: return 'badge-secondary';
+      }
+    }
+    
+    function formatStatus(status) {
+      return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    function formatDateShort(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    function formatMonthYear(monthYearString) {
+      const [year, month] = monthYearString.split('-');
+      const date = new Date(year, month - 1, 1);
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+  });
+</script>
+            

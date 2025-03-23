@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moevit Admin - <%= title %></title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Dashboard custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h3>Moevit Admin</h3>
+      </div>
+
+      <ul class="list-unstyled components">
+        <li class="<%= activePage === 'dashboard' ? 'active' : '' %>">
+          <a href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="<%= activePage === 'rides' ? 'active' : '' %>">
+          <a href="/rides"><i class="fas fa-taxi"></i> Rides</a>
+        </li>
+        <li class="<%= activePage === 'drivers' ? 'active' : '' %>">
+          <a href="/drivers"><i class="fas fa-user"></i> Drivers</a>
+        </li>
+        <li class="<%= activePage === 'users' ? 'active' : '' %>">
+          <a href="/users"><i class="fas fa-users"></i> Users</a>
+        </li>
+        <li class="<%= activePage === 'settings' ? 'active' : '' %>">
+          <a href="/settings"><i class="fas fa-cog"></i> Settings</a>
+        </li>
+      </ul>
+
+      <ul class="list-unstyled logout">
+        <li>
+          <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content">
+      <!-- Top Navbar -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapse" class="btn btn-info">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="ms-auto d-flex align-items-center">
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user-circle"></i> <span id="username">Admin</span>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user-cog"></i> Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" id="dropdown-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <div class="container-fluid content-body">
+        <h2 class="page-title"><%= title %></h2>
+        <%- body %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom JavaScript -->
+  <script src="/js/main.js"></script>
+  <script>
+    // Sidebar toggle
+    $(document).ready(function () {
+      $('#sidebarCollapse').on('click', function () {
+        $('#sidebar').toggleClass('active');
+      });
+
+      // Logout functionality
+      $('#logout-btn, #dropdown-logout-btn').on('click', function(e) {
+        e.preventDefault();
+        // Call logout API
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        .then(response => {
+          // Clear localStorage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          // Redirect to login page
+          window.location.href = '/login';
+        })
+        .catch(error => {
+          console.error('Logout error:', error);
+        });
+      });
+
+      // Set username from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.name) {
+        $('#username').text(user.name);
+      }
+    });
+  </script>
+  <%- script %>
+</body>
+</html>
